@@ -279,21 +279,6 @@ object Operations {
     )
 
   /*
-  def vUnitStrideLoadOp(
-    width: LoadStoreWidth.Type,
-    umop: UmopOperation.Type
-  ): (UInt, UInt) => Operations =
-    createOperation(
-      (u, _) => u.loadStoreOp -> LoadStoreOperation.Load,
-      (u, _) => u.loadStoreWidth -> width,
-      (u, _) => u.vMop -> MopOperation.UnitStride,
-      (u, _) => u.vUmop -> umop,
-      (u, _) => u.vecLdst -> true.B,
-      _.vd -> _(11, 7),
-      _.vdValid -> true.B,
-      _.sources(0).reg -> _(19, 15).reg,
-    )
-
   def vUnitStrideStoreOp(
     width: LoadStoreWidth.Type,
     umop: UmopOperation.Type,
@@ -433,23 +418,12 @@ object Operations {
       VType("VSETVLI") -> vsetvliOp(CSROperation.SetVl),
       VType("VSETIVLI") -> vsetivliOp(CSROperation.SetVl),
       VType("VSETVL") -> vsetvlOp(CSROperation.SetVl),
+      VType("VLE8_V") -> vUnitStrideLoadOp(width = LoadStoreWidth.Byte, umop = UmopOperation.Normal),
+      VType("VLE16_V") -> vUnitStrideLoadOp(width = LoadStoreWidth.HalfWord, umop = UmopOperation.Normal),
+      VType("VLE32_V") -> vUnitStrideLoadOp(width = LoadStoreWidth.Word, umop = UmopOperation.Normal),
+      VType("VLE64_V") -> vUnitStrideLoadOp(width = LoadStoreWidth.DoubleWord, umop = UmopOperation.Normal),
+
       /*
-      VType("VLE8") -> vUnitStrideLoadOp(
-        width = LoadStoreWidth.Byte,
-        umop = UmopOperation.Normal,
-      ),
-      VType("VLE16") -> vUnitStrideLoadOp(
-        width = LoadStoreWidth.HalfWord,
-        umop = UmopOperation.Normal,
-      ),
-      VType("VLE32") -> vUnitStrideLoadOp(
-        width = LoadStoreWidth.Word,
-        umop = UmopOperation.Normal,
-      ),
-      VType("VLE64") -> vUnitStrideLoadOp(
-        width = LoadStoreWidth.DoubleWord,
-        umop = UmopOperation.Normal,
-      ),
       VType("VSE8") -> vUnitStrideStoreOp(
         width = LoadStoreWidth.Byte,
         umop = UmopOperation.Normal,
