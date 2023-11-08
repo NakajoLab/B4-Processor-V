@@ -236,6 +236,9 @@ class B4Processor(implicit params: Parameters) extends Module {
     /** データメモリバッファとLSQ */
     dataMemoryBuffer.io.dataIn(tid) <> loadStoreQueue(tid).io.memory
 
+    /** データメモリバッファとベクトルCSR */
+    dataMemoryBuffer.io.vCsr(tid) := csr(tid).io.vCsrOutput
+
     /** リオーダバッファと出力コレクタ */
     reorderBuffer(tid).io.collectedOutputs := outputCollector.io.outputs(tid)
 

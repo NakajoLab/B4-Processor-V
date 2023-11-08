@@ -18,7 +18,7 @@ class CSR(implicit params: Parameters) extends Module with FormalTools {
     val fetch = Output(new CSR2Fetch)
     val reorderBuffer = Flipped(new ReorderBuffer2CSR)
     val threadId = Input(UInt(log2Up(params.threads).W))
-    // val vCsrOutput = Output(new VCsrBundle())
+    val vCsrOutput = Output(new VCsrBundle())
   })
 
   private val operation = io.decoderInput.bits.operation
@@ -49,6 +49,8 @@ class CSR(implicit params: Parameters) extends Module with FormalTools {
     _.vlmul -> 0.U
   ))
   val vl = RegInit(0.U((log2Up(params.vlenb)+1).W))
+  io.vCsrOutput.vtype := vtype
+  io.vCsrOutput.vl := vl
 
   def setCSROutput(reg: UInt): Unit = {
     io.CSROutput.bits.value := reg

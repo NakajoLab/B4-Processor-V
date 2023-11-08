@@ -3,12 +3,8 @@ package b4processor.modules.cache
 import circt.stage.ChiselStage
 import b4processor.Parameters
 import b4processor.connections.{LoadStoreQueue2Memory, OutputValue}
-import b4processor.modules.memory.{
-  MemoryAccessChannels,
-  MemoryReadRequest,
-  MemoryWriteRequest,
-  MemoryWriteRequestData,
-}
+import b4processor.modules.memory.{MemoryAccessChannels, MemoryReadRequest, MemoryWriteRequest, MemoryWriteRequestData}
+import b4processor.modules.vector.VCsrBundle
 import b4processor.structures.memoryAccess.MemoryAccessWidth
 import b4processor.utils.operations.{LoadStoreOperation, LoadStoreWidth}
 import b4processor.utils.{B4RRArbiter, FIFO, FormalTools}
@@ -26,6 +22,7 @@ class DataMemoryBuffer(implicit params: Parameters)
   val io = IO(new Bundle {
     val dataIn =
       Vec(params.threads, Flipped(Irrevocable(new LoadStoreQueue2Memory)))
+    val vCsr = Vec(params.threads, Input(new VCsrBundle()))
     val memory = new MemoryAccessChannels()
     val output = Irrevocable(new OutputValue())
   })
