@@ -63,6 +63,7 @@ class DataMemoryBuffer(implicit params: Parameters)
     val operationIsStore = LoadStoreOperation.Store === entry.operation
 
     when(!operationIsStore) {
+      // TODO: ベクトルメモリロード追加
       io.memory.read.request.valid := true.B
       val size = MuxLookup(entry.operationWidth, MemoryAccessWidth.DoubleWord)(
         Seq(

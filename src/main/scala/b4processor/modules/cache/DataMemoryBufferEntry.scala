@@ -1,7 +1,7 @@
 package b4processor.modules.cache
 
 import b4processor.Parameters
-import b4processor.utils.operations.{LoadStoreOperation, LoadStoreWidth}
+import b4processor.utils.operations._
 import b4processor.utils.Tag
 import chisel3._
 
@@ -19,6 +19,12 @@ class DataMemoryBufferEntry(implicit params: Parameters) extends Bundle {
   /** メモリアクセスの情報 */
   val operation = LoadStoreOperation()
   val operationWidth = LoadStoreWidth()
+
+  /** ベクトル拡張メモリアクセス */
+  val mopOperation = MopOperation()
+
+  /** ベクトル拡張ユニットストライドメモリアクセス */
+  val umopOperation = UmopOperation()
 }
 
 object DataMemoryBufferEntry {
