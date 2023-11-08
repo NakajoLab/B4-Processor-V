@@ -2,7 +2,7 @@ package b4processor.modules.lsq
 
 import b4processor.Parameters
 import b4processor.structures.memoryAccess.MemoryAccessInfo
-import b4processor.utils.operations.{LoadStoreOperation, LoadStoreWidth}
+import b4processor.utils.operations._
 import b4processor.utils.Tag
 import chisel3._
 
@@ -44,6 +44,12 @@ class LoadStoreQueueEntry(implicit params: Parameters) extends Bundle {
 
   /** ストアデータが有効である */
   val storeDataValid = Bool()
+
+  /** ベクトル拡張メモリアクセス */
+  val mopOperation = MopOperation()
+
+  /** ベクトル拡張ユニットストライドメモリアクセス */
+  val umopOperation = UmopOperation()
 }
 
 object LoadStoreQueueEntry {
@@ -58,6 +64,8 @@ object LoadStoreQueueEntry {
     storeDataTag: Tag,
     storeData: UInt,
     storeDataValid: Bool,
+    mOpOperation: MopOperation.Type,
+    umopOperation: UmopOperation.Type,
   )(implicit params: Parameters): LoadStoreQueueEntry = {
     val entry = LoadStoreQueueEntry.default
     entry.valid := true.B
@@ -74,6 +82,9 @@ object LoadStoreQueueEntry {
     entry.storeDataTag := storeDataTag
     entry.storeData := storeData
     entry.storeDataValid := storeDataValid
+
+    entry.mopOperation := mOpOperation
+    entry.umopOperation := umopOperation
 
     entry
   }
@@ -95,6 +106,9 @@ object LoadStoreQueueEntry {
     entry.storeDataTag := Tag(0, 0)
     entry.storeData := 0.U
     entry.storeDataValid := false.B
+
+    entry.mopOperation := DontCare
+    entry.umopOperation := DontCare
 
     entry
   }

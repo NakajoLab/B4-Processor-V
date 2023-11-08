@@ -81,6 +81,8 @@ class LoadStoreQueue(implicit params: Parameters)
         storeDataTag = decoder.bits.storeDataTag,
         storeData = decoder.bits.storeData,
         storeDataValid = decoder.bits.storeDataValid,
+        mOpOperation = decoder.bits.mopOperation,
+        umopOperation = decoder.bits.umopOperation,
       )
     }
     insertIndex = insertIndex + entryValid.asUInt

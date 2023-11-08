@@ -47,11 +47,13 @@ class Operations extends Bundle {
   val vecExec = Bool()
   val vMop = MopOperation()
   val vUmop = UmopOperation()
-  val vs1 = UInt(5.W)
-  val vs2 = UInt(5.W)
+  // val vs1 = UInt(5.W)
+  // val vs2 = UInt(5.W)
+  val vs3 = UInt(5.W)
   val vd = UInt(5.W)
-  val vs1Valid = Bool()
-  val vs2Valid = Bool()
+  // val vs1Valid = Bool()
+  // val vs2Valid = Bool()
+  val vs3Valid = Bool()
   val vdValid = Bool()
 }
 
@@ -115,11 +117,13 @@ object Operations {
     _.vecExec -> false.B,
     _.vMop -> MopOperation.UnitStride,
     _.vUmop -> UmopOperation.Normal,
-    _.vs1 -> 0.U,
-    _.vs2 -> 0.U,
+    // _.vs1 -> 0.U,
+    // _.vs2 -> 0.U,
+    _.vs3 -> 0.U,
     _.vd -> 0.U,
-    _.vs1Valid -> false.B,
-    _.vs2Valid -> false.B,
+    // _.vs1Valid -> false.B,
+    // _.vs2Valid -> false.B,
+    _.vs3Valid -> false.B,
     _.vdValid -> false.B,
   )
 
@@ -258,6 +262,20 @@ object Operations {
       _.sources(0).reg -> _(19,15).reg,
       _.sources(1).reg -> _(24,20).reg,
       (u, _) => u.csrOp -> valid(op)
+    )
+
+  def vUnitStrideLoadOp(
+    width: LoadStoreWidth.Type,
+    umop: UmopOperation.Type
+  ): (UInt, UInt) => Operations =
+    createOperation(
+      (u, _) => u.loadStoreOp -> valid(LoadStoreOperation.Load),
+      (u, _) => u.loadStoreWidth -> width,
+      _.sources(0).reg  -> _(19, 15).reg,
+      (u, _) => u.vMop -> MopOperation.UnitStride,
+      (u, _) => u.vUmop -> umop,
+      _.vd -> _(11, 7),
+      (u, _) => u.vdValid -> true.B,
     )
 
   /*
@@ -1151,7 +1169,7 @@ object CSROperation extends ChiselEnum {
 }
 
 object MopOperation extends ChiselEnum {
-  val UnitStride, IndexedUnordered, Strided, IndexedOrdered = Value
+  val None, UnitStride, IndexedUnordered, Strided, IndexedOrdered = Value
 }
 
 object UmopOperation extends ChiselEnum {

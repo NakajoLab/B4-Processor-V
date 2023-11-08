@@ -34,8 +34,9 @@ class Decoder(implicit params: Parameters) extends Module with FormalTools {
 
   io.reorderBuffer.isDecodeError := io.instructionFetch.valid && !operations.valid
 
+  // all memory access (both load and store), amo(gus), csr is in-order
   val operationInorder =
-    LoadStoreOperation.Store === operations.loadStoreOp.validDataOrZero ||
+    operations.loadStoreOp.isValid ||
       operations.amoOp.isValid ||
       operations.csrOp.isValid
 
@@ -120,6 +121,8 @@ class Decoder(implicit params: Parameters) extends Module with FormalTools {
       .sources(1)
       .value(11, 0)
       .asSInt
+    io.loadStoreQueue.bits.mopOperation := operations.vMop
+    io.loadStoreQueue.bits.umopOperation := operations.vUmop
     when(operationInorder) {
       io.loadStoreQueue.bits.storeDataTag := sourceTags(1).bits
       io.loadStoreQueue.bits.storeData := values(1).bits
