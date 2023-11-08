@@ -215,9 +215,6 @@ class B4Processor(implicit params: Parameters) extends Module {
 
       /** デコーダと出力コレクタ */
       decoders(tid)(d).io.outputCollector := outputCollector.io.outputs(tid)
-
-      /** デコーダとLSQの接続 */
-      loadStoreQueue(tid).io.decoders(d) <> decoders(tid)(d).io.loadStoreQueue
     }
 
     /** フェッチと分岐結果の接続 */
