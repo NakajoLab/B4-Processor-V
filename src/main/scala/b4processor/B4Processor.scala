@@ -1,10 +1,6 @@
 package b4processor
 
-import b4processor.connections.{
-  OutputValue,
-  ReservationStation2Executor,
-  ReservationStation2PExtExecutor,
-}
+import b4processor.connections.{OutputValue, ReservationStation2Executor, ReservationStation2PExtExecutor}
 import b4processor.modules.AtomicLSU
 import b4processor.modules.PExt.B4PExtExecutor
 import circt.stage.ChiselStage
@@ -19,13 +15,8 @@ import b4processor.modules.memory.ExternalMemoryInterface
 import b4processor.modules.outputcollector.{OutputCollector, OutputCollector2}
 import b4processor.modules.registerfile.{RegisterFile, RegisterFileMem}
 import b4processor.modules.reorderbuffer.ReorderBuffer
-import b4processor.modules.reservationstation.{
-  IssueBuffer,
-  IssueBuffer2,
-  IssueBuffer3,
-  ReservationStation,
-  ReservationStation2,
-}
+import b4processor.modules.reservationstation.{IssueBuffer, IssueBuffer2, IssueBuffer3, ReservationStation, ReservationStation2}
+import b4processor.modules.vector.VecRegFile
 import b4processor.utils.axi.{ChiselAXI, VerilogAXI}
 import chisel3._
 import chisel3.experimental.dataview.DataViewable
@@ -98,6 +89,11 @@ class B4Processor(implicit params: Parameters) extends Module {
     if (params.enablePExt)
       Some(Seq.fill(params.pextExecutors)(Module(new B4PExtExecutor())))
     else None
+
+  private val vecRegFile = Module(new VecRegFile(vrfPortNum = 1))
+  vecRegFile.io := DontCare
+
+  vecRegFile.io.writeReq(0) := dataMemoryBuffer.io.vectorOutput
 
   axi <> externalMemoryInterface.io.coordinator
 

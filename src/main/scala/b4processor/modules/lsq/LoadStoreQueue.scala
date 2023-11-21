@@ -81,6 +81,7 @@ class LoadStoreQueue(implicit params: Parameters)
         storeDataTag = decoder.bits.storeDataTag,
         storeData = decoder.bits.storeData,
         storeDataValid = decoder.bits.storeDataValid,
+        destVecReg = decoder.bits.destVecReg,
         mOpOperation = decoder.bits.mopOperation,
         umopOperation = decoder.bits.umopOperation,
       )
@@ -191,6 +192,7 @@ class LoadStoreQueue(implicit params: Parameters)
         io.memory.bits.address := Address(i)
         io.memory.bits.operation := buf.operation
         io.memory.bits.operationWidth := buf.operationWidth
+        io.memory.bits.destVecReg := buf.destVecReg
         io.memory.bits.mopOperation := buf.mopOperation
         io.memory.bits.umopOperation := buf.umopOperation
         when(io.memory.ready) {

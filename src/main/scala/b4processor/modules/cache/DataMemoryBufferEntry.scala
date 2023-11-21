@@ -4,6 +4,7 @@ import b4processor.Parameters
 import b4processor.utils.operations._
 import b4processor.utils.Tag
 import chisel3._
+import chisel3.util._
 
 class DataMemoryBufferEntry(implicit params: Parameters) extends Bundle {
 
@@ -19,6 +20,9 @@ class DataMemoryBufferEntry(implicit params: Parameters) extends Bundle {
   /** メモリアクセスの情報 */
   val operation = LoadStoreOperation()
   val operationWidth = LoadStoreWidth()
+
+  /** ベクトルディスティネーションレジスタ */
+  val destVecReg = Valid(UInt(5.W))
 
   /** ベクトル拡張メモリアクセス */
   val mopOperation = MopOperation()

@@ -4,9 +4,9 @@ import circt.stage.ChiselStage
 import b4processor.Parameters
 import b4processor.connections.{LoadStoreQueue2Memory, OutputValue}
 import b4processor.modules.memory.{MemoryAccessChannels, MemoryReadRequest, MemoryWriteRequest, MemoryWriteRequestData}
-import b4processor.modules.vector.VCsrBundle
+import b4processor.modules.vector.{VCsrBundle, VecRegFileWriteReq}
 import b4processor.structures.memoryAccess.MemoryAccessWidth
-import b4processor.utils.operations.{LoadStoreOperation, LoadStoreWidth}
+import b4processor.utils.operations.{LoadStoreOperation, LoadStoreWidth, MopOperation}
 import b4processor.utils.{B4RRArbiter, FIFO, FormalTools}
 import chisel3._
 import chisel3.util._
@@ -25,6 +25,7 @@ class DataMemoryBuffer(implicit params: Parameters)
     val vCsr = Vec(params.threads, Input(new VCsrBundle()))
     val memory = new MemoryAccessChannels()
     val output = Irrevocable(new OutputValue())
+    val vectorOutput = ValidIO(new VecRegFileWriteReq())
   })
 
   private val inputArbiter = Module(
@@ -54,6 +55,16 @@ class DataMemoryBuffer(implicit params: Parameters)
   private val writeRequestDone = RegInit(false.B)
   private val writeRequestDataDone = RegInit(false.B)
 
+  val vecIdx = RegInit(0.U(log2Up(params.vlen / 8).W))
+  val executedNum = RegInit(0.U(log2Up(params.vlen / 8).W))
+  val vecIdxToVrfWrite = RegNext(vecIdx)
+  val accumulator = RegInit(0.U(params.xprlen.W))
+
+  io.vectorOutput.valid := false.B
+  io.vectorOutput.bits := DontCare
+
+  val vecMemAccessLast = vecIdx === (io.vCsr(buffer.output.bits.tag.threadId).vl - 1.U)
+
   when(!buffer.empty) {
     val entry = buffer.output.bits
 
@@ -71,14 +82,40 @@ class DataMemoryBuffer(implicit params: Parameters)
         ),
       )
       val signed = LoadStoreOperation.Load === entry.operation
-      io.memory.read.request.bits := MemoryReadRequest.ReadToTag(
-        entry.address,
-        size,
-        signed,
-        entry.tag,
-      )
+      io.memory.read.request.bits := 0.U.asTypeOf(new MemoryReadRequest)
+      when(entry.mopOperation === MopOperation.None) {
+        io.memory.read.request.bits := MemoryReadRequest.ReadToTag(
+          entry.address,
+          size,
+          signed,
+          entry.tag,
+        )
+      } .elsewhen(entry.mopOperation === MopOperation.UnitStride) {
+        io.memory.read.request.bits := MemoryReadRequest.ReadToVector(
+          baseAddress = entry.address,
+          size = size,
+          vl = io.vCsr(entry.tag.threadId).vl,
+          outputTag = entry.tag,
+        )
+        // ベクトルメモリアクセスのresp
+        when(io.memory.read.response.valid) {
+          io.vectorOutput.valid := true.B
+          io.vectorOutput.bits.vd := entry.destVecReg.bits
+          io.vectorOutput.bits.vtype := io.vCsr(entry.tag.threadId).vtype
+          io.vectorOutput.bits.index := io.memory.read.response.bits.burstIndex
+          io.vectorOutput.bits.last := (io.memory.read.response.bits.burstIndex === io.vCsr(entry.tag.threadId).vl - 1.U)
+          io.vectorOutput.bits.data := io.memory.read.response.bits.value
+          io.vectorOutput.bits.vm := false.B
+          io.vectorOutput.bits.writeReq := true.B
+        }
+      }
+      // ベクトルメモリアクセスの際に最終要素まで待つ
       when(io.memory.read.request.ready) {
-        buffer.output.ready := true.B
+        when(entry.mopOperation === MopOperation.UnitStride) {
+          buffer.output.ready := io.vectorOutput.bits.last
+        } .otherwise {
+          buffer.output.ready := true.B
+        }
       }
     }.elsewhen(operationIsStore) {
       val addressUpper = entry.address(63, 3)

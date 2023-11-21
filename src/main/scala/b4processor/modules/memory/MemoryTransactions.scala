@@ -98,6 +98,16 @@ object MemoryReadRequest {
     w
   }
 
+  def ReadToVector(baseAddress: UInt, size: MemoryAccessWidth.Type, vl: UInt, outputTag: Tag)(implicit params: Parameters): MemoryReadRequest = {
+    val w = Wire(new MemoryReadRequest())
+    w.address := baseAddress
+    w.burstLength := vl
+    w.size := size
+    w.signed := true.B
+    w.outputTag := outputTag
+    w
+  }
+
   def ReadInstruction(address: UInt, length: Int, threadId: UInt)(implicit
     params: Parameters,
   ): MemoryReadRequest = {

@@ -47,6 +47,8 @@ class Decoder(implicit params: Parameters) extends Module with FormalTools {
   io.reorderBuffer.destination.destinationRegister := operations.rd
   io.reorderBuffer.destination.operationInorder := operationInorder
   io.reorderBuffer.programCounter := io.instructionFetch.bits.programCounter
+  io.reorderBuffer.destVecReg.bits := operations.vd
+  io.reorderBuffer.destVecReg.valid := operations.vdValid
 
   // レジスタファイルへの入力
   io.registerFile.sourceRegisters zip operations.sources foreach {
@@ -121,6 +123,8 @@ class Decoder(implicit params: Parameters) extends Module with FormalTools {
       .sources(1)
       .value(11, 0)
       .asSInt
+    io.loadStoreQueue.bits.destVecReg.bits := operations.vd
+    io.loadStoreQueue.bits.destVecReg.valid := operations.vdValid
     io.loadStoreQueue.bits.mopOperation := operations.vMop
     io.loadStoreQueue.bits.umopOperation := operations.vUmop
     when(operationInorder) {

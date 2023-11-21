@@ -18,6 +18,7 @@ SUBDIRS := fibonacci \
 			illegal_inst \
 			io_test \
 			pext_test \
+			vecLoad \
 			vsetvl \
       vectorBranch
 #			simple_loader_uart \

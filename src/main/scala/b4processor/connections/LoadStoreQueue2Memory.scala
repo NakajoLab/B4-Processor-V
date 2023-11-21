@@ -4,6 +4,7 @@ import b4processor.Parameters
 import b4processor.utils.operations._
 import b4processor.utils.Tag
 import chisel3._
+import chisel3.util._
 
 /** LSQとメモリをつなぐ
   */
@@ -13,6 +14,9 @@ class LoadStoreQueue2Memory(implicit params: Parameters) extends Bundle {
   val data = UInt(64.W)
   val operation = LoadStoreOperation()
   val operationWidth = LoadStoreWidth()
+
+  /** ベクトルディスティネーションレジスタ */
+  val destVecReg = Valid(UInt(5.W))
 
   /** ベクトル拡張メモリアクセス */
   val mopOperation = MopOperation()
