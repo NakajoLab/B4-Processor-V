@@ -20,7 +20,7 @@ SUBDIRS := fibonacci \
 			pext_test \
 			vecLoad \
 			vsetvl \
-      vectorBranch
+#      vectorBranch
 #			simple_loader_uart \
 
 all: $(SUBDIRS)

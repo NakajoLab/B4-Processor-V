@@ -1,9 +1,9 @@
-int array0[13] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+// int array0[13] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
 
 long main(long loop_count) {
   int i = 0;
   long vl, avl = 29;
-  int *ptr = array0;
+  int *ptr = (int*)0x80100000;
   while(avl != 0) {
     // 256bit -> 32 * 8 elements
     // i:0 -> avl = 29

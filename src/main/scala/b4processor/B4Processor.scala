@@ -29,6 +29,8 @@ class B4Processor(implicit params: Parameters) extends Module {
     if (params.debug) Some(IO(Output(Vec(params.threads, Vec(32, UInt(64.W))))))
     else None
 
+  val vectorRegisterFileContents = if(params.debug) Some(IO(Output(Vec(32, UInt(params.vlen.W))))) else None
+
   require(params.decoderPerThread >= 1, "スレッド毎にデコーダは1以上必要です。")
   require(params.threads >= 1, "スレッド数は1以上です。")
   require(params.tagWidth >= 1, "タグ幅は1以上である必要があります。")
@@ -102,6 +104,11 @@ class B4Processor(implicit params: Parameters) extends Module {
     for (tid <- 0 until params.threads)
       for (i <- 0 until 32)
         registerFileContents.get(tid)(i) <> registerFile(tid).io.values.get(i)
+
+  if (params.debug) {
+    vectorRegisterFileContents.get := vecRegFile.io.debug.get
+  }
+
   if (params.enablePExt)
     for (pe <- 0 until params.pextExecutors) {
       pextIssueBuffer.get.io.executors(pe) <> pextExecutors.get(pe).io.input

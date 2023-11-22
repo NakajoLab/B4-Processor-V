@@ -59,6 +59,7 @@ class DataMemoryBuffer(implicit params: Parameters)
   val executedNum = RegInit(0.U(log2Up(params.vlen / 8).W))
   val vecIdxToVrfWrite = RegNext(vecIdx)
   val accumulator = RegInit(0.U(params.xprlen.W))
+  val vecMemExecuting = RegInit(false.B)
 
   io.vectorOutput.valid := false.B
   io.vectorOutput.bits := DontCare
@@ -84,6 +85,7 @@ class DataMemoryBuffer(implicit params: Parameters)
       val signed = LoadStoreOperation.Load === entry.operation
       io.memory.read.request.bits := 0.U.asTypeOf(new MemoryReadRequest)
       when(entry.mopOperation === MopOperation.None) {
+        io.memory.read.request.valid := true.B
         io.memory.read.request.bits := MemoryReadRequest.ReadToTag(
           entry.address,
           size,
@@ -91,10 +93,11 @@ class DataMemoryBuffer(implicit params: Parameters)
           entry.tag,
         )
       } .elsewhen(entry.mopOperation === MopOperation.UnitStride) {
+        io.memory.read.request.valid := !vecMemExecuting
         io.memory.read.request.bits := MemoryReadRequest.ReadToVector(
           baseAddress = entry.address,
           size = size,
-          vl = io.vCsr(entry.tag.threadId).vl,
+          vl = io.vCsr(entry.tag.threadId).vl-1.U,
           outputTag = entry.tag,
         )
         // ベクトルメモリアクセスのresp
@@ -113,6 +116,7 @@ class DataMemoryBuffer(implicit params: Parameters)
       when(io.memory.read.request.ready) {
         when(entry.mopOperation === MopOperation.UnitStride) {
           buffer.output.ready := io.vectorOutput.bits.last
+          vecMemExecuting := !buffer.output.ready
         } .otherwise {
           buffer.output.ready := true.B
         }

@@ -9,9 +9,11 @@ import _root_.circt.stage.ChiselStage
 class B4ProcessorWithMemory()(implicit params: Parameters) extends Module {
   val io = IO(new Bundle {
     val simulation = Flipped(Valid(UInt(64.W)))
-    val registerFileContents =
+    val registerFileContents = {
       if (params.debug) Some(Output(Vec(params.threads, Vec(32, UInt(64.W)))))
       else None
+    }
+    val vectorRegisterFileContents = if(params.debug) Some(Output(Vec(32, UInt(params.vlen.W)))) else None
     val accessMemoryAddress = new Bundle {
       val readAddress = Valid(UInt(64.W))
       val readData = Valid(UInt(64.W))
@@ -30,8 +32,10 @@ class B4ProcessorWithMemory()(implicit params: Parameters) extends Module {
 
   axiMemory.simulationIO <> io.simulationIO
 
-  if (params.debug)
+  if (params.debug) {
     io.registerFileContents.get <> core.registerFileContents.get
+    io.vectorRegisterFileContents.get := core.vectorRegisterFileContents.get
+  }
 
   io.accessMemoryAddress.readAddress.valid := core.axi.readAddress.valid
   io.accessMemoryAddress.readAddress.bits := core.axi.readAddress.bits.ADDR
