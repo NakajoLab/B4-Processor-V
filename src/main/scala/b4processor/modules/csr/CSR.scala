@@ -104,6 +104,9 @@ class CSR(implicit params: Parameters) extends Module with FormalTools {
       val nextVl = Mux(avl >= maxVl, maxVl, avl)
       vl := nextVl
       io.CSROutput.bits.value := nextVl
+
+      io.vCsrOutput.vtype := vtypeBits
+      io.vCsrOutput.vl := nextVl
     }.otherwise {
       io.CSROutput.bits.isError := true.B
     }
