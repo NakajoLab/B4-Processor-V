@@ -40,10 +40,9 @@ class VecRegFileWriteReq(implicit params: Parameters) extends Bundle {
    */
   val vm = Bool()
   /**
-   * 書き込みを行うか否か
-   * 信号線自体のvalidはVEUから書き込む命令があるか否かを示す
+   * byte毎のstrb
    */
-  val writeReq = Bool()
+  val writeStrb = Vec(8, Bool())
 }
 
 class VecRegFileIO(vrfPortNum: Int)(implicit params: Parameters) extends Bundle {
@@ -99,6 +98,7 @@ class VecRegFile(vrfPortNum: Int)(implicit params: Parameters) extends Module {
     val internalWriteMask = VecInit((0 until params.vlen / 8).map(_ => false.B))
     for (i <- 0 until 4) {
       switch(req.vtype.vsew) {
+        // sew=0 -> req.index*8からreq.index*8+7まで
         is(i.U) {
           for (j <- 0 until (1 << i)) {
             // i=0 (e8) => internalWriteData(io.reqMem.bits.index) := io.reqMem.bits.data(7,0)
@@ -123,7 +123,7 @@ class VecRegFile(vrfPortNum: Int)(implicit params: Parameters) extends Module {
   }
 
   for(req <- io.writeReq) {
-    when(req.valid && req.bits.writeReq) {
+    when(req.valid) {
       writeToVRF(vrf, req.bits)
     }
   }

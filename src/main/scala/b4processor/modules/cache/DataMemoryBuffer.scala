@@ -97,7 +97,17 @@ class DataMemoryBuffer(implicit params: Parameters)
         io.memory.read.request.bits := MemoryReadRequest.ReadToVector(
           baseAddress = entry.address,
           size = size,
-          vl = io.vCsr(entry.tag.threadId).vl-1.U,
+          // sew=64 -> vl-1 -> vl(,0)-1
+          // sew=32 -> vl=2*n => vl/2 - 1
+          //           vl=2*n+1 => vl/2
+          //           -> vl(,1) + vl(0)
+          // sew=16 -> vl=4*n => vl/4 - 1
+          //           vl=4*n+(1,2,3) => vl/4
+          //           -> vl(,2) + vl(1,0).orR - 1
+          // sew=8 -> vl=8*n => vl/8 - 1
+          //          vl=8*n+(1,...7) => vl/8
+          //          -> vl(,3) + vl(2,0).orR - 1
+          vl = io.vCsr(entry.tag.threadId).getBurstLength,
           outputTag = entry.tag,
         )
         // ベクトルメモリアクセスのresp
@@ -106,10 +116,62 @@ class DataMemoryBuffer(implicit params: Parameters)
           io.vectorOutput.bits.vd := entry.destVecReg.bits
           io.vectorOutput.bits.vtype := io.vCsr(entry.tag.threadId).vtype
           io.vectorOutput.bits.index := io.memory.read.response.bits.burstIndex
-          io.vectorOutput.bits.last := (io.memory.read.response.bits.burstIndex === io.vCsr(entry.tag.threadId).vl - 1.U)
+          io.vectorOutput.bits.last := (io.memory.read.response.bits.burstIndex === io.vCsr(entry.tag.threadId).getBurstLength)
           io.vectorOutput.bits.data := io.memory.read.response.bits.value
           io.vectorOutput.bits.vm := false.B
-          io.vectorOutput.bits.writeReq := true.B
+
+          // sew=64 -> Seq.fill(8, true.B)
+          // sew=32 -> if(vl(0)) Seq(4*false.B, 4*true.B)
+          // sew=16 -> if(vl(1,0)=1) 2*true.B else if(2) 4*true.B else if(3) 6*true.B
+          val toWriteStrb = Wire(Vec(8, Bool()))
+          toWriteStrb := MuxLookup(io.vCsr(entry.tag.threadId).vtype.vsew, VecInit(Seq.fill(8)(true.B)))(
+            (0 until 4).map(
+              i => i.U -> (if (i == 3) {
+                VecInit(Seq.fill(8)(true.B))
+              } else if(i == 2) {
+                val __internal = VecInit(Seq.fill(8)(false.B))
+                when(io.vCsr(entry.tag.threadId).vl(0)) {
+                  __internal := VecInit(Seq.fill(4)(false.B) ++ Seq.fill(4)(true.B))
+                } .otherwise {
+                  __internal := VecInit(Seq.fill(8)(true.B))
+                }
+                __internal
+              } else if(i==1) {
+                val __internal = VecInit(Seq.fill(8)(false.B))
+                for(j <- 0 until 4) {
+                  // 0 => false*0, true*8
+                  // 1 => false*6, true*2
+                  // 2 => false*4, true*4
+                  // 3 => false*2, true*6
+                  switch(io.vCsr(entry.tag.threadId).vl(1,0)) {
+                    is(j.U) {
+                      if(j==0) {
+                        __internal := VecInit(Seq.fill(8)(true.B))
+                      } else {
+                        __internal := VecInit(Seq.fill((4-j)*2)(false.B) ++ Seq.fill(j*2)(true.B))
+                      }
+                    }
+                  }
+                }
+                __internal
+              } else {
+                val __internal = VecInit(Seq.fill(8)(false.B))
+                for(j <- 0 until 8) {
+                  switch(io.vCsr(entry.tag.threadId).vl(2,0)) {
+                    is(j.U) {
+                      if(j==0) {
+                        __internal := VecInit(Seq.fill(8)(true.B))
+                      } else {
+                        __internal := VecInit(Seq.fill(8-j)(false.B) ++ Seq.fill(j)(true.B))
+                      }
+                    }
+                  }
+                }
+                __internal
+              })
+            )
+          )
+          io.vectorOutput.bits.writeStrb := Mux(io.vectorOutput.bits.last, VecInit(Seq.fill(8)(true.B)), toWriteStrb)
         }
       }
       // ベクトルメモリアクセスの際に最終要素まで待つ

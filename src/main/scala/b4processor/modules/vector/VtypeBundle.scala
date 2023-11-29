@@ -26,4 +26,19 @@ class VtypeBundle(implicit params: Parameters) extends Bundle {
 class VCsrBundle(implicit params: Parameters) extends Bundle {
   val vtype = new VtypeBundle()
   val vl = UInt((log2Up(params.vlenb) + 1).W)
+  def getBurstLength: UInt = {
+    MuxLookup(vtype.vsew, vl-1.U)(
+      (0 until 4).map(
+        i => i.U -> {
+          vl(vl.getWidth-1, 3-i) - 1.U + {
+            i match {
+              case 3 => 0.U
+              case 2 => vl(0).asUInt
+              case _ => vl(2-i,0).orR.asUInt
+            }
+          }
+        }
+      )
+    )
+  }
 }
