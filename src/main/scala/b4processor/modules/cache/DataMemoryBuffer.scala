@@ -138,35 +138,29 @@ class DataMemoryBuffer(implicit params: Parameters)
                 __internal
               } else if(i==1) {
                 val __internal = VecInit(Seq.fill(8)(false.B))
-                for(j <- 0 until 4) {
-                  // 0 => false*0, true*8
-                  // 1 => false*6, true*2
-                  // 2 => false*4, true*4
-                  // 3 => false*2, true*6
-                  switch(io.vCsr(entry.tag.threadId).vl(1,0)) {
-                    is(j.U) {
-                      if(j==0) {
-                        __internal := VecInit(Seq.fill(8)(true.B))
-                      } else {
-                        __internal := VecInit(Seq.fill((4-j)*2)(false.B) ++ Seq.fill(j*2)(true.B))
-                      }
-                    }
-                  }
-                }
+
+                __internal := MuxLookup(io.vCsr(entry.tag.threadId).vl(1,0), VecInit(Seq.fill(8)(true.B)))(
+                  (0 until 4).map(
+                    j => j.U -> (if(j==0) {
+                      VecInit(Seq.fill(8)(true.B))
+                    } else {
+                      VecInit(Seq.fill((4-j)*2)(false.B) ++ Seq.fill(j*2)(true.B))
+                    })
+                  )
+                )
                 __internal
               } else {
                 val __internal = VecInit(Seq.fill(8)(false.B))
-                for(j <- 0 until 8) {
-                  switch(io.vCsr(entry.tag.threadId).vl(2,0)) {
-                    is(j.U) {
-                      if(j==0) {
-                        __internal := VecInit(Seq.fill(8)(true.B))
-                      } else {
-                        __internal := VecInit(Seq.fill(8-j)(false.B) ++ Seq.fill(j)(true.B))
-                      }
-                    }
-                  }
-                }
+
+                __internal := MuxLookup(io.vCsr(entry.tag.threadId).vl(2,0), VecInit(Seq.fill(8)(true.B)))(
+                  (0 until 8).map(
+                    j => j.U -> (if(j==0) {
+                      VecInit(Seq.fill(8)(true.B))
+                    } else {
+                      VecInit(Seq.fill(8-j)(false.B) ++ Seq.fill(j)(true.B))
+                    })
+                  )
+                )
                 __internal
               })
             )
