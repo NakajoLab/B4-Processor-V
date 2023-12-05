@@ -128,16 +128,19 @@ class DataMemoryBuffer(implicit params: Parameters)
           toWriteStrb := MuxLookup(io.vCsr(entry.tag.threadId).vtype.vsew, VecInit(Seq.fill(8)(true.B)))(
             (0 until 4).map(
               i => i.U -> (if (i == 3) {
+                // e64
                 VecInit(Seq.fill(8)(true.B))
               } else if(i == 2) {
+                // e32
                 val __internal = VecInit(Seq.fill(8)(false.B))
                 when(io.vCsr(entry.tag.threadId).vl(0)) {
-                  __internal := VecInit(Seq.fill(4)(false.B) ++ Seq.fill(4)(true.B))
+                  __internal := VecInit(Seq.fill(4)(true.B) ++ Seq.fill(4)(false.B))
                 } .otherwise {
                   __internal := VecInit(Seq.fill(8)(true.B))
                 }
                 __internal
               } else if(i==1) {
+                // e16
                 val __internal = VecInit(Seq.fill(8)(false.B))
 
                 __internal := MuxLookup(io.vCsr(entry.tag.threadId).vl(1,0), VecInit(Seq.fill(8)(true.B)))(
@@ -145,12 +148,13 @@ class DataMemoryBuffer(implicit params: Parameters)
                     j => j.U -> (if(j==0) {
                       VecInit(Seq.fill(8)(true.B))
                     } else {
-                      VecInit(Seq.fill((4-j)*2)(false.B) ++ Seq.fill(j*2)(true.B))
+                      VecInit(Seq.fill((4-j)*2)(true.B) ++ Seq.fill(j*2)(false.B))
                     })
                   )
                 )
                 __internal
               } else {
+                // e8
                 val __internal = VecInit(Seq.fill(8)(false.B))
 
                 __internal := MuxLookup(io.vCsr(entry.tag.threadId).vl(2,0), VecInit(Seq.fill(8)(true.B)))(
@@ -158,7 +162,7 @@ class DataMemoryBuffer(implicit params: Parameters)
                     j => j.U -> (if(j==0) {
                       VecInit(Seq.fill(8)(true.B))
                     } else {
-                      VecInit(Seq.fill(8-j)(false.B) ++ Seq.fill(j)(true.B))
+                      VecInit(Seq.fill(8-j)(true.B) ++ Seq.fill(j)(false.B))
                     })
                   )
                 )
@@ -166,7 +170,7 @@ class DataMemoryBuffer(implicit params: Parameters)
               })
             )
           )
-          io.vectorOutput.bits.writeStrb := Mux(io.vectorOutput.bits.last, VecInit(Seq.fill(8)(true.B)), toWriteStrb)
+          io.vectorOutput.bits.writeStrb := Mux(io.vectorOutput.bits.last, toWriteStrb, VecInit(Seq.fill(8)(true.B)))
         }
       }
       // ベクトルメモリアクセスの際に最終要素まで待つ
