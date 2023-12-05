@@ -85,7 +85,6 @@ class DataMemoryBuffer(implicit params: Parameters)
       val signed = LoadStoreOperation.Load === entry.operation
       io.memory.read.request.bits := 0.U.asTypeOf(new MemoryReadRequest)
       when(entry.mopOperation === MopOperation.None) {
-        printf("fuck\n")
         io.memory.read.request.valid := true.B
         io.memory.read.request.bits := MemoryReadRequest.ReadToTag(
           entry.address,
