@@ -85,6 +85,7 @@ class DataMemoryBuffer(implicit params: Parameters)
       val signed = LoadStoreOperation.Load === entry.operation
       io.memory.read.request.bits := 0.U.asTypeOf(new MemoryReadRequest)
       when(entry.mopOperation === MopOperation.None) {
+        printf("fuck\n")
         io.memory.read.request.valid := true.B
         io.memory.read.request.bits := MemoryReadRequest.ReadToTag(
           entry.address,
@@ -96,7 +97,7 @@ class DataMemoryBuffer(implicit params: Parameters)
         io.memory.read.request.valid := !vecMemExecuting
         io.memory.read.request.bits := MemoryReadRequest.ReadToVector(
           baseAddress = entry.address,
-          size = size,
+          size = MemoryAccessWidth.DoubleWord,
           // sew=64 -> vl-1 -> vl(,0)-1
           // sew=32 -> vl=2*n => vl/2 - 1
           //           vl=2*n+1 => vl/2

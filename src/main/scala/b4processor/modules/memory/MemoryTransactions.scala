@@ -102,7 +102,7 @@ object MemoryReadRequest {
     val w = Wire(new MemoryReadRequest())
     w.address := baseAddress
     w.burstLength := vl
-    w.size := size
+    w.size := MemoryAccessWidth.DoubleWord
     w.signed := true.B
     w.outputTag := outputTag
     w

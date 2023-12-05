@@ -100,12 +100,11 @@ class VecRegFile(vrfPortNum: Int)(implicit params: Parameters) extends Module {
       switch(req.vtype.vsew) {
         // sew=0 -> req.index*8からreq.index*8+7まで
         is(i.U) {
-          for (j <- 0 until (1 << i)) {
-            // i=0 (e8) => internalWriteData(io.reqMem.bits.index) := io.reqMem.bits.data(7,0)
-            // i=1 (e16) => internalWriteData(io.reqMem.bits.index*2) := io.reqMem.bits.data(7,0)
-            //              internalWriteData(io.reqMem.bits.index*2+1) := io.reqMem.bits.data(15,8)
-            internalWriteData((req.index << i).asUInt + j.U) := req.data(j * 8 + 7, j * 8)
-            internalWriteMask((req.index << i).asUInt + j.U) := true.B
+          for(j <- 0 until 8) {
+            // i=0 (e8) => internalWriteData(index*8 + 0...7) := data(7,0), data(15,8), ..., data(63, 56)
+            // i=1 (e16) => internalWriteData(index*8 + 0...7)
+            internalWriteData((req.index << 3).asUInt + j.U) := req.data(j * 8 + 7, j * 8)
+            internalWriteMask((req.index << 3).asUInt + j.U) := req.writeStrb(j)
           }
         }
       }
