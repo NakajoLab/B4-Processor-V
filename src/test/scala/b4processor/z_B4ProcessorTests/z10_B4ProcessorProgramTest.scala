@@ -681,4 +681,17 @@ class z10_B4ProcessorProgramTest
         c.checkForRegister(3, 4, 1000)
       }
   }
+  it should "run vector e8 load" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 1, decoderPerThread = 1)
+      )
+    )
+      .withAnnotations(
+        Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+      ) { c =>
+        c.initialize("programs/riscv-sample-programs/vecLoad_e8")
+        c.checkForRegister(3, 2, 1000)
+      }
+  }
 }

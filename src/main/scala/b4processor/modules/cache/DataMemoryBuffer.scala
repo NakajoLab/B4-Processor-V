@@ -147,7 +147,7 @@ class DataMemoryBuffer(implicit params: Parameters)
                     j => j.U -> (if(j==0) {
                       VecInit(Seq.fill(8)(true.B))
                     } else {
-                      VecInit(Seq.fill((4-j)*2)(true.B) ++ Seq.fill(j*2)(false.B))
+                      VecInit(Seq.fill(j*2)(true.B) ++ Seq.fill((4-j)*2)(false.B))
                     })
                   )
                 )
@@ -161,7 +161,7 @@ class DataMemoryBuffer(implicit params: Parameters)
                     j => j.U -> (if(j==0) {
                       VecInit(Seq.fill(8)(true.B))
                     } else {
-                      VecInit(Seq.fill(8-j)(true.B) ++ Seq.fill(j)(false.B))
+                      VecInit(Seq.fill(j)(true.B) ++ Seq.fill(8-j)(false.B))
                     })
                   )
                 )
