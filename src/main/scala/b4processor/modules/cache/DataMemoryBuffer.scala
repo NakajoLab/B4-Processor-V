@@ -182,6 +182,7 @@ class DataMemoryBuffer(implicit params: Parameters)
         }
       }
     }.elsewhen(operationIsStore) {
+      // TODO: ベクトルストア追加
       val addressUpper = entry.address(63, 3)
       val addressLower = entry.address(2, 0)
       when(!writeRequestDone) {

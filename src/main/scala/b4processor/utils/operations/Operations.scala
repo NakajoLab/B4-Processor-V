@@ -278,6 +278,20 @@ object Operations {
       (u, _) => u.vdValid -> true.B,
     )
 
+  def vUnitStrideStoreOp(
+    width: LoadStoreWidth.Type,
+    umop: UmopOperation.Type
+  ): (UInt, UInt) => Operations =
+    createOperation(
+      (u, _) => u.loadStoreOp -> valid(LoadStoreOperation.Store),
+      (u, _) => u.loadStoreWidth -> width,
+      _.sources(0).reg -> _(19, 15).reg,
+      (u, _) => u.vMop -> MopOperation.UnitStride,
+      (u, _) => u.vUmop -> umop,
+      _.vs3 -> _(19, 15),
+      (u, _) => u.vs3Valid -> true.B,
+    )
+
   /*
   def vUnitStrideStoreOp(
     width: LoadStoreWidth.Type,
