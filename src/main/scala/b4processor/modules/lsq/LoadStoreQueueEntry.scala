@@ -49,6 +49,9 @@ class LoadStoreQueueEntry(implicit params: Parameters) extends Bundle {
   /** ベクトルディスティネーションレジスタ */
   val destVecReg = Valid(UInt(5.W))
 
+  /** ベクトルソースレジスタ */
+  val srcVecReg = Valid(UInt(5.W))
+
   /** ベクトル拡張メモリアクセス */
   val mopOperation = MopOperation()
 
@@ -69,6 +72,7 @@ object LoadStoreQueueEntry {
     storeData: UInt,
     storeDataValid: Bool,
     destVecReg: Valid[UInt],
+    srcVecReg: Valid[UInt],
     mOpOperation: MopOperation.Type,
     umopOperation: UmopOperation.Type,
   )(implicit params: Parameters): LoadStoreQueueEntry = {
@@ -89,6 +93,7 @@ object LoadStoreQueueEntry {
     entry.storeDataValid := storeDataValid
 
     entry.destVecReg := destVecReg
+    entry.srcVecReg := srcVecReg
     entry.mopOperation := mOpOperation
     entry.umopOperation := umopOperation
 
@@ -115,6 +120,8 @@ object LoadStoreQueueEntry {
 
     entry.destVecReg.valid := false.B
     entry.destVecReg.bits := 0.U
+    entry.srcVecReg.valid := false.B
+    entry.srcVecReg.bits := 0.U
     entry.mopOperation := DontCare
     entry.umopOperation := DontCare
 

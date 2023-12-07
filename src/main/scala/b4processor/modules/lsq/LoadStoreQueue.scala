@@ -82,6 +82,7 @@ class LoadStoreQueue(implicit params: Parameters)
         storeData = decoder.bits.storeData,
         storeDataValid = decoder.bits.storeDataValid,
         destVecReg = decoder.bits.destVecReg,
+        srcVecReg = decoder.bits.srcVecReg,
         mOpOperation = decoder.bits.mopOperation,
         umopOperation = decoder.bits.umopOperation,
       )

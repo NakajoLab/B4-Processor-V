@@ -18,6 +18,9 @@ class LoadStoreQueue2Memory(implicit params: Parameters) extends Bundle {
   /** ベクトルディスティネーションレジスタ */
   val destVecReg = Valid(UInt(5.W))
 
+  /** ベクトルソースレジスタ */
+  val srcVecReg = Valid(UInt(5.W))
+
   /** ベクトル拡張メモリアクセス */
   val mopOperation = MopOperation()
 

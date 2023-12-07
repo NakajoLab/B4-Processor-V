@@ -436,6 +436,10 @@ object Operations {
       VType("VLE16_V") -> vUnitStrideLoadOp(width = LoadStoreWidth.HalfWord, umop = UmopOperation.Normal),
       VType("VLE32_V") -> vUnitStrideLoadOp(width = LoadStoreWidth.Word, umop = UmopOperation.Normal),
       VType("VLE64_V") -> vUnitStrideLoadOp(width = LoadStoreWidth.DoubleWord, umop = UmopOperation.Normal),
+      VType("VSE8_V") -> vUnitStrideStoreOp(width = LoadStoreWidth.Byte, umop = UmopOperation.Normal),
+      VType("VSE16_V") -> vUnitStrideStoreOp(width = LoadStoreWidth.HalfWord, umop = UmopOperation.Normal),
+      VType("VSE32_V") -> vUnitStrideStoreOp(width = LoadStoreWidth.Word, umop = UmopOperation.Normal),
+      VType("VSE64_V") -> vUnitStrideStoreOp(width = LoadStoreWidth.DoubleWord, umop = UmopOperation.Normal),
 
       /*
       VType("VSE8") -> vUnitStrideStoreOp(
