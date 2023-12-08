@@ -224,7 +224,7 @@ class DataMemoryBuffer(implicit params: Parameters)
         when(entry.mopOperation === MopOperation.None) {
           io.memory.write.requestData.bits.data := alignData(entry.data, addressLower, entry.operationWidth)
         } .elsewhen(entry.mopOperation === MopOperation.UnitStride) {
-          io.vectorInput.req.vd := entry.destVecReg.bits
+          io.vectorInput.req.vd := entry.srcVecReg.bits
           io.vectorInput.req.sew := 3.U
           io.vectorInput.req.idx := vecIdx
           io.memory.write.requestData.bits.data := io.vectorInput.resp.vdOut

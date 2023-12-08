@@ -288,7 +288,7 @@ object Operations {
       _.sources(0).reg -> _(19, 15).reg,
       (u, _) => u.vMop -> MopOperation.UnitStride,
       (u, _) => u.vUmop -> umop,
-      _.vs3 -> _(19, 15),
+      _.vs3 -> _(11, 7),
       (u, _) => u.vs3Valid -> true.B,
     )
 

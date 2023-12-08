@@ -194,6 +194,7 @@ class LoadStoreQueue(implicit params: Parameters)
         io.memory.bits.operation := buf.operation
         io.memory.bits.operationWidth := buf.operationWidth
         io.memory.bits.destVecReg := buf.destVecReg
+        io.memory.bits.srcVecReg := buf.srcVecReg
         io.memory.bits.mopOperation := buf.mopOperation
         io.memory.bits.umopOperation := buf.umopOperation
         when(io.memory.ready) {

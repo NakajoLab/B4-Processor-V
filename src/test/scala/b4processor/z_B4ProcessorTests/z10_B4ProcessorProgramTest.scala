@@ -694,4 +694,16 @@ class z10_B4ProcessorProgramTest
         c.checkForRegister(3, 2, 1000)
       }
   }
+  it should "run vector store" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 1, decoderPerThread = 1)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/vecStore")
+      c.checkForRegister(3, 1919, 1000)
+    }
+  }
 }
