@@ -225,18 +225,11 @@ class DataMemoryBuffer(implicit params: Parameters)
           io.memory.write.requestData.bits.data := alignData(entry.data, addressLower, entry.operationWidth)
         } .elsewhen(entry.mopOperation === MopOperation.UnitStride) {
           io.vectorInput.req.vd := entry.destVecReg.bits
-          io.vectorInput.req.sew := io.vCsr(entry.tag.threadId).vtype.vsew
+          io.vectorInput.req.sew := 3.U
           io.vectorInput.req.idx := vecIdx
-          val rawData = io.vectorInput.resp.vdOut
-          io.memory.write.requestData.bits.data := MuxLookup(
-            entry.operationWidth, rawData
-          )(Seq(
-            LoadStoreWidth.Byte -> Mux1H(
-              (0 until 8).map(i =>
-                (addressLower + vecIdx === i.U) -> (entry.data(7,0) << i * 8).asUInt,
-              )
-            ),
-          ))
+          io.memory.write.requestData.bits.data := io.vectorInput.resp.vdOut
+          // vlとsewに応じて変える
+          io.memory.write.requestData.bits.mask := "hFF".U
           vecIdx := vecIdx + vecMemExecuting.asUInt
         }
         io.memory.write.requestData.bits.mask := MuxLookup(
@@ -266,7 +259,8 @@ class DataMemoryBuffer(implicit params: Parameters)
       val RR = io.memory.write.request.ready
       val DR = io.memory.write.requestData.ready
       RD := (!RD && !DD && RR && !DR) || (RD && !DD && !DR)
-      DD := (!RD && !DD && !RR && DR) || (!RD && DD && !RR)
+      // TODO: ベクトルメモリストアの時に最後の要素がrequestData.readyになるまで待つ
+      DD := ((!RD && !DD && !RR && DR) || (!RD && DD && !RR)) && ((entry.mopOperation === MopOperation.None) || vecIdx === io.vCsr(entry.tag.threadId).getBurstLength)
       val bufOutputReady = (!RD && !DD && RR && DR) || (!RD && DD && RR) || (RD && !DD && DR)
       // ベクトルストアの場合，最後の要素まで待つ
       when(bufOutputReady) {
