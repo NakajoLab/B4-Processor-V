@@ -4,7 +4,7 @@ import circt.stage.ChiselStage
 import b4processor.Parameters
 import b4processor.connections.{LoadStoreQueue2Memory, OutputValue}
 import b4processor.modules.memory.{MemoryAccessChannels, MemoryReadRequest, MemoryWriteRequest, MemoryWriteRequestData}
-import b4processor.modules.vector.{VCsrBundle, VecRegFileWriteReq}
+import b4processor.modules.vector._
 import b4processor.structures.memoryAccess.MemoryAccessWidth
 import b4processor.utils.operations.{LoadStoreOperation, LoadStoreWidth, MopOperation}
 import b4processor.utils.{B4RRArbiter, FIFO, FormalTools}
@@ -25,6 +25,7 @@ class DataMemoryBuffer(implicit params: Parameters)
     val vCsr = Vec(params.threads, Input(new VCsrBundle()))
     val memory = new MemoryAccessChannels()
     val output = Irrevocable(new OutputValue())
+    val vectorInput = Flipped(new VecRegFileReadIO())
     val vectorOutput = ValidIO(new VecRegFileWriteReq())
   })
 
@@ -56,15 +57,16 @@ class DataMemoryBuffer(implicit params: Parameters)
   private val writeRequestDataDone = RegInit(false.B)
 
   val vecIdx = RegInit(0.U(log2Up(params.vlen / 8).W))
-  val executedNum = RegInit(0.U(log2Up(params.vlen / 8).W))
-  val vecIdxToVrfWrite = RegNext(vecIdx)
-  val accumulator = RegInit(0.U(params.xprlen.W))
+  // val executedNum = RegInit(0.U(log2Up(params.vlen / 8).W))
+  // val vecIdxToVrfWrite = RegNext(vecIdx)
+  // val accumulator = RegInit(0.U(params.xprlen.W))
   val vecMemExecuting = RegInit(false.B)
 
   io.vectorOutput.valid := false.B
   io.vectorOutput.bits := DontCare
+  io.vectorInput := DontCare
 
-  val vecMemAccessLast = vecIdx === (io.vCsr(buffer.output.bits.tag.threadId).vl - 1.U)
+  // val vecMemAccessLast = vecIdx === (io.vCsr(buffer.output.bits.tag.threadId).vl - 1.U)
 
   when(!buffer.empty) {
     val entry = buffer.output.bits
@@ -182,6 +184,31 @@ class DataMemoryBuffer(implicit params: Parameters)
         }
       }
     }.elsewhen(operationIsStore) {
+      def alignData(data: UInt, addrLower: UInt, width: LoadStoreWidth.Type): UInt = {
+        require(addrLower.getWidth == 3)
+        MuxLookup(
+          width, 0.U,
+        )(
+          Seq(
+            LoadStoreWidth.Byte -> Mux1H(
+              (0 until 8).map(i =>
+                (addrLower === i.U) -> (data(7, 0) << i * 8).asUInt,
+              ),
+            ),
+            LoadStoreWidth.HalfWord -> Mux1H(
+              (0 until 4).map(i =>
+                (addrLower(2, 1) === i.U) -> (data(15, 0) << i * 16).asUInt,
+              ),
+            ),
+            LoadStoreWidth.Word -> Mux1H(
+              (0 until 2).map(i =>
+                (addrLower(2) === i.U) -> (data(31, 0) << i * 32).asUInt,
+              ),
+            ),
+            LoadStoreWidth.DoubleWord -> data,
+          ),
+        )
+      }
       // TODO: ベクトルストア追加
       val addressUpper = entry.address(63, 3)
       val addressLower = entry.address(2, 0)
@@ -189,35 +216,29 @@ class DataMemoryBuffer(implicit params: Parameters)
         io.memory.write.request.valid := true.B
         io.memory.write.request.bits.address := addressUpper ## 0.U(3.W)
         io.memory.write.request.bits.outputTag := entry.tag
+        io.memory.write.request.bits.burstLen := Mux(entry.mopOperation === MopOperation.None, 0.U, io.vCsr(entry.tag.threadId).getBurstLength)
       }
 
       when(!writeRequestDataDone) {
         io.memory.write.requestData.valid := true.B
-        io.memory.write.requestData.bits.data := MuxLookup(
-          entry.operationWidth,
-          0.U,
-        )(
-          Seq(
+        when(entry.mopOperation === MopOperation.None) {
+          io.memory.write.requestData.bits.data := alignData(entry.data, addressLower, entry.operationWidth)
+        } .elsewhen(entry.mopOperation === MopOperation.UnitStride) {
+          io.vectorInput.req.vd := entry.destVecReg.bits
+          io.vectorInput.req.sew := io.vCsr(entry.tag.threadId).vtype.vsew
+          io.vectorInput.req.idx := vecIdx
+          val rawData = io.vectorInput.resp.vdOut
+          io.memory.write.requestData.bits.data := MuxLookup(
+            entry.operationWidth, rawData
+          )(Seq(
             LoadStoreWidth.Byte -> Mux1H(
               (0 until 8).map(i =>
-                (addressLower === i.U) -> (entry.data(7, 0) << i * 8).asUInt,
-              ),
+                (addressLower + vecIdx === i.U) -> (entry.data(7,0) << i * 8).asUInt,
+              )
             ),
-            LoadStoreWidth.HalfWord -> Mux1H(
-              (0 until 4).map(i =>
-                (addressLower(2, 1) === i.U) -> (entry
-                  .data(15, 0) << i * 16).asUInt,
-              ),
-            ),
-            LoadStoreWidth.Word -> Mux1H(
-              (0 until 2).map(i =>
-                (addressLower(2) === i.U) -> (entry
-                  .data(31, 0) << i * 32).asUInt,
-              ),
-            ),
-            LoadStoreWidth.DoubleWord -> entry.data,
-          ),
-        )
+          ))
+          vecIdx := vecIdx + vecMemExecuting.asUInt
+        }
         io.memory.write.requestData.bits.mask := MuxLookup(
           entry.operationWidth,
           0.U,
@@ -246,8 +267,17 @@ class DataMemoryBuffer(implicit params: Parameters)
       val DR = io.memory.write.requestData.ready
       RD := (!RD && !DD && RR && !DR) || (RD && !DD && !DR)
       DD := (!RD && !DD && !RR && DR) || (!RD && DD && !RR)
-      buffer.output.ready := (!RD && !DD && RR && DR) || (!RD && DD && RR) || (RD && !DD && DR)
-
+      val bufOutputReady = (!RD && !DD && RR && DR) || (!RD && DD && RR) || (RD && !DD && DR)
+      // ベクトルストアの場合，最後の要素まで待つ
+      when(bufOutputReady) {
+        when(entry.mopOperation === MopOperation.UnitStride) {
+          buffer.output.ready := io.memory.write.response.bits.burstIndex === io.vCsr(entry.tag.threadId).getBurstLength
+          vecMemExecuting := !buffer.output.ready
+          vecIdx := 0.U
+        } .otherwise {
+          buffer.output.ready := true.B
+        }
+      }
       cover(RD)
       cover(DD)
 

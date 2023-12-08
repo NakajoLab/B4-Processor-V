@@ -96,6 +96,7 @@ class B4Processor(implicit params: Parameters) extends Module {
   vecRegFile.io := DontCare
 
   vecRegFile.io.writeReq(0) := dataMemoryBuffer.io.vectorOutput
+  vecRegFile.io.readReq(0) <> dataMemoryBuffer.io.vectorInput
 
   axi <> externalMemoryInterface.io.coordinator
 
