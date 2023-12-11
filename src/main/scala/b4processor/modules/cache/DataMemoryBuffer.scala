@@ -260,18 +260,16 @@ class DataMemoryBuffer(implicit params: Parameters)
       val DR = io.memory.write.requestData.ready
       // ベクトルメモリアクセスならばio_memory_write_request_valid && readyの時点でRDをtrueにする
       // また、RDかつDRかつ最終要素のときに下げる
-      RD := (!RD && !DD && RR && !DR) || (RD && !DD && !DR) || (((!RD && RR) || (RD && !DD)) && (entry.mopOperation =/= MopOperation.None))
+      RD := (!RD && !DD && RR && !DR) || (RD && !DD && !DR) || (((!RD && RR) || (RD && !(DD || (vecIdx === io.vCsr(entry.tag.threadId).getBurstLength)))) && (entry.mopOperation =/= MopOperation.None))
       // TODO: ベクトルメモリストアの時に最後の要素がrequestData.readyになるまで待つ
       DD := ((!RD && !DD && !RR && DR) || (!RD && DD && !RR)) && ((entry.mopOperation === MopOperation.None) || vecIdx === io.vCsr(entry.tag.threadId).getBurstLength)
       val bufOutputReady = ((!RD && !DD && RR && DR) || (!RD && DD && RR) || (RD && !DD && DR)) && ((entry.mopOperation === MopOperation.None) || vecIdx === io.vCsr(entry.tag.threadId).getBurstLength)
-      // ベクトルストアの場合，最後の要素まで待つ
+
       when(bufOutputReady) {
+        buffer.output.ready := true.B
         when(entry.mopOperation === MopOperation.UnitStride) {
-          buffer.output.ready := io.memory.write.response.bits.burstIndex === io.vCsr(entry.tag.threadId).getBurstLength
           vecMemExecuting := !buffer.output.ready
           vecIdx := 0.U
-        } .otherwise {
-          buffer.output.ready := true.B
         }
       }
       cover(RD)
