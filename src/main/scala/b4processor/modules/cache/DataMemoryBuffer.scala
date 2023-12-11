@@ -223,6 +223,25 @@ class DataMemoryBuffer(implicit params: Parameters)
         io.memory.write.requestData.valid := true.B
         when(entry.mopOperation === MopOperation.None) {
           io.memory.write.requestData.bits.data := alignData(entry.data, addressLower, entry.operationWidth)
+          io.memory.write.requestData.bits.mask := MuxLookup(
+            entry.operationWidth,
+            0.U,
+          )(
+            Seq(
+              LoadStoreWidth.Byte -> Mux1H(
+                (0 until 8).map(i => (addressLower === i.U) -> (1 << i).U),
+              ),
+              LoadStoreWidth.HalfWord -> Mux1H(
+                (0 until 4).map(i =>
+                  (addressLower(2, 1) === i.U) -> (3 << i * 2).U,
+                ),
+              ),
+              LoadStoreWidth.Word -> Mux1H(
+                (0 until 2).map(i => (addressLower(2) === i.U) -> (15 << i * 4).U),
+              ),
+              LoadStoreWidth.DoubleWord -> "b11111111".U,
+            ),
+          )
         } .elsewhen(entry.mopOperation === MopOperation.UnitStride) {
           io.vectorInput.req.vd := entry.srcVecReg.bits
           io.vectorInput.req.sew := 3.U
@@ -232,25 +251,6 @@ class DataMemoryBuffer(implicit params: Parameters)
           io.memory.write.requestData.bits.mask := "hFF".U
           vecIdx := vecIdx + !vecMemExecuting.asUInt
         }
-        io.memory.write.requestData.bits.mask := MuxLookup(
-          entry.operationWidth,
-          0.U,
-        )(
-          Seq(
-            LoadStoreWidth.Byte -> Mux1H(
-              (0 until 8).map(i => (addressLower === i.U) -> (1 << i).U),
-            ),
-            LoadStoreWidth.HalfWord -> Mux1H(
-              (0 until 4).map(i =>
-                (addressLower(2, 1) === i.U) -> (3 << i * 2).U,
-              ),
-            ),
-            LoadStoreWidth.Word -> Mux1H(
-              (0 until 2).map(i => (addressLower(2) === i.U) -> (15 << i * 4).U),
-            ),
-            LoadStoreWidth.DoubleWord -> "b11111111".U,
-          ),
-        )
       }
 
       // 条件は真理値表を用いて作成
