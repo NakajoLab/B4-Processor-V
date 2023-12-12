@@ -247,8 +247,44 @@ class DataMemoryBuffer(implicit params: Parameters)
           io.vectorInput.req.sew := 3.U
           io.vectorInput.req.idx := vecIdx
           io.memory.write.requestData.bits.data := io.vectorInput.resp.vdOut
-          // vlとsewに応じて変える
-          io.memory.write.requestData.bits.mask := "hFF".U
+          // TODO: vlとsewに応じて変える
+          val rawMask = Wire(UInt(8.W))
+          rawMask := MuxLookup(io.vCsr(entry.tag.threadId).vtype.vsew, "hFF".U)(
+            (0 until 4).map(
+              i => i.U -> (if (i==3) {
+                // e64
+                "hFF".U
+              } else if(i==2) {
+                // e32
+                Mux(io.vCsr(entry.tag.threadId).vl(0), "h0F".U, "hFF".U)
+              } else if(i==1) {
+                // e16
+                MuxLookup(io.vCsr(entry.tag.threadId).vl(1,0), "hFF".U)(
+                  (0 until 4).map(
+                    j => j.U -> (if(j==0) {
+                      "hFF".U
+                    } else {
+                      // Cat(Fill((4-j)*2, false.B), Fill(j*2, true.B))
+                      Fill(j*2, true.B)
+                    })
+                  )
+                )
+              } else {
+                // e8
+                MuxLookup(io.vCsr(entry.tag.threadId).vl(2,0), "hFF".U)(
+                  (0 until 8).map(
+                    j => j.U -> (if(j==0) {
+                      "hFF".U
+                    } else {
+                      // Cat(Fill(8-j, false.B), Fill(j, true.B))
+                      Fill(j, true.B)
+                    })
+                  )
+                )
+              })
+            )
+          )
+          io.memory.write.requestData.bits.mask := Mux(vecIdx === io.vCsr(entry.tag.threadId).getBurstLength, rawMask, "hFF".U)
           vecIdx := vecIdx + !vecMemExecuting.asUInt
         }
       }
