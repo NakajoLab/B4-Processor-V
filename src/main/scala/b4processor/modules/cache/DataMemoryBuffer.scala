@@ -95,6 +95,9 @@ class DataMemoryBuffer(implicit params: Parameters)
           entry.tag,
         )
       } .elsewhen(entry.mopOperation === MopOperation.UnitStride) {
+        when(io.vCsr(entry.tag.threadId).vl === 0.U) {
+          printf("vector load inst when vl=0, tag: %x, addr: %x\n", entry.tag.asUInt, entry.address)
+        }
         io.memory.read.request.valid := !vecMemExecuting
         io.memory.read.request.bits := MemoryReadRequest.ReadToVector(
           baseAddress = entry.address,
@@ -173,6 +176,7 @@ class DataMemoryBuffer(implicit params: Parameters)
           )
           io.vectorOutput.bits.writeStrb := Mux(io.vectorOutput.bits.last, toWriteStrb, VecInit(Seq.fill(8)(true.B)))
         }
+        6.toHexString
       }
       // ベクトルメモリアクセスの際に最終要素まで待つ
       when(io.memory.read.request.ready) {

@@ -706,17 +706,16 @@ class z10_B4ProcessorProgramTest
       c.checkForRegister(3, 1919, 1000)
     }
   }
-  it should "run load_store with 1 parallel" in {
+  it should "run vector memcpy" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 1, decoderPerThread = 1),
-      ),
-    )
-      .withAnnotations(
-        Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation),
-      ) { c =>
-        c.initialize("programs/riscv-sample-programs/load_store")
-        c.checkForRegister(3, 10, 200)
-      }
+        defaultParams.copy(threads = 1, decoderPerThread = 1)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/memcpyVec")
+      c.checkForRegister(3, 1919, 1000)
+    }
   }
 }
