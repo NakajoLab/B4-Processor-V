@@ -174,15 +174,14 @@ class LoadStoreQueue(implicit params: Parameters)
         }
       }
 
-      val operationIsStore =
+      val operationIsStore = {
         LoadStoreOperation.Store === buf.operation
+      }
+      val operationIsLoadOrStore = operationIsStore || (LoadStoreOperation.Load === buf.operation) || (LoadStoreOperation.LoadUnsigned === buf.operation)
 
       // io.memory(i).valid :=  io.memory(i).ready && (head =/= tail) && ("loadの送出条件" || "storeの送出条件")
       checkOk := (head =/= tail) && buf.valid &&
-        buf.addressValid &&
-        ((!operationIsStore && !Overlap(i)) ||
-          (operationIsStore && buf.storeDataValid &&
-            buf.readyReorderSign))
+        buf.addressValid && operationIsLoadOrStore && buf.storeDataValid && buf.readyReorderSign
 
       io.memory.valid := checkOk | isSet
       // 送出実行

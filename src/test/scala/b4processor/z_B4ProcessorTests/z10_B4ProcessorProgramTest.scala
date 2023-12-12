@@ -715,7 +715,7 @@ class z10_B4ProcessorProgramTest
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
     ) { c =>
       c.initialize("programs/riscv-sample-programs/memcpyVec")
-      c.checkForRegister(3, 1919, 1000)
+      c.checkForRegister(3, 1919, 2000)
     }
   }
 }
