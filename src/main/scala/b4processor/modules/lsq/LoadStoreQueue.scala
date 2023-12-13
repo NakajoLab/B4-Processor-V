@@ -183,7 +183,7 @@ class LoadStoreQueue(implicit params: Parameters)
       checkOk := (head =/= tail) && buf.valid &&
         buf.addressValid && operationIsLoadOrStore && buf.storeDataValid && buf.readyReorderSign
 
-      // ベクトルCSRを読み、ベクトルが有効ならば上、無効なら下を選ぶようにするべき
+      // ベクトルメモリストアの後にスカラロードがある際にOverlapが検出できない，ベクトルCSRに書く前にベクトルロードが来る可能性があるなどの理由で厳密なインオーダアクセスが必要
       /*
        * checkOk := (head =/= tail) && buf.valid &&
            buf.addressValid &&
