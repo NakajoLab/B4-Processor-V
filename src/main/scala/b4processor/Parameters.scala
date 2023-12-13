@@ -22,6 +22,8 @@ import scala.math.pow
   *   プログラムカウンタの初期値
   * @param xprlen
   *   整数レジスタ長
+  * @param fuckVectorMechanics
+  *   ベクトルに必要な全メモリアクセスのインオーダ化を破壊し，スカラメモリアクセスを高速化するか否か
   */
 case class Parameters(
   tagWidth: Int = 4,
@@ -43,6 +45,7 @@ case class Parameters(
   vlen: Int = 256,
   vecAluExecUnitNum: Int = 2,
   physicalVrfFor1Thread: Int = 48,
+  fuckVectorMechanics: Boolean = false,
 ) {
   def vlenb: Int = vlen/8
   def physicalVrfEntries: Int = physicalVrfFor1Thread * threads

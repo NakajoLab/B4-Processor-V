@@ -180,17 +180,19 @@ class LoadStoreQueue(implicit params: Parameters)
       val operationIsLoadOrStore = operationIsStore || (LoadStoreOperation.Load === buf.operation) || (LoadStoreOperation.LoadUnsigned === buf.operation)
 
       // io.memory(i).valid :=  io.memory(i).ready && (head =/= tail) && ("loadの送出条件" || "storeの送出条件")
-      checkOk := (head =/= tail) && buf.valid &&
-        buf.addressValid && operationIsLoadOrStore && buf.storeDataValid && buf.readyReorderSign
 
       // ベクトルメモリストアの後にスカラロードがある際にOverlapが検出できない，ベクトルCSRに書く前にベクトルロードが来る可能性があるなどの理由で厳密なインオーダアクセスが必要
-      /*
-       * checkOk := (head =/= tail) && buf.valid &&
-           buf.addressValid &&
-           ((!operationIsStore && !Overlap(i)) ||
-             (operationIsStore && buf.storeDataValid &&
-               buf.readyReorderSign))
-       */
+      checkOk := (if(params.fuckVectorMechanics) {
+        (head =/= tail) && buf.valid &&
+          buf.addressValid &&
+          ((!operationIsStore && !Overlap(i)) ||
+            (operationIsStore && buf.storeDataValid &&
+              buf.readyReorderSign))
+      } else {
+        (head =/= tail) && buf.valid &&
+          buf.addressValid && operationIsLoadOrStore && buf.storeDataValid && buf.readyReorderSign
+      })
+
       io.memory.valid := checkOk | isSet
       // 送出実行
       when(checkOk && !isSet) {

@@ -22,6 +22,7 @@ SUBDIRS := fibonacci \
 			vecLoad_e8 \
 			vecStore \
 			memcpyVec \
+			memcpyScalar \
 			vsetvl \
 #      vectorBranch
 #			simple_loader_uart \

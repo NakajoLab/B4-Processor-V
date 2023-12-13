@@ -709,12 +709,24 @@ class z10_B4ProcessorProgramTest
   it should "run vector memcpy" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 1, decoderPerThread = 1)
+        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = false)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
     ) { c =>
       c.initialize("programs/riscv-sample-programs/memcpyVec")
+      c.checkForRegister(3, 1919, 2000)
+    }
+  }
+  it should "run scalar memcpy" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = true)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/memcpyScalar")
       c.checkForRegister(3, 1919, 2000)
     }
   }
