@@ -13,7 +13,7 @@ class B4ProcessorWithMemory()(implicit params: Parameters) extends Module {
       if (params.debug) Some(Output(Vec(params.threads, Vec(32, UInt(64.W)))))
       else None
     }
-    val vectorRegisterFileContents = if(params.debug) Some(IO(Output(Vec(params.threads, Vec(32, UInt(params.vlen.W)))))) else None
+    val vectorRegisterFileContents = if(params.debug) Some(Output(Vec(params.threads, Vec(32, UInt(params.vlen.W))))) else None
     val accessMemoryAddress = new Bundle {
       val readAddress = Valid(UInt(64.W))
       val readData = Valid(UInt(64.W))
