@@ -1,4 +1,4 @@
-PROGRAMNAME := memcpyVec
-SOURCES := memcpyVec.c entry.S
+PROGRAMNAME := memcpyVec_mt
+SOURCES := memcpyVec_mt.c entry.S
 
 include ../common.mk

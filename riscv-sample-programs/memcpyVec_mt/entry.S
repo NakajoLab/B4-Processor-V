@@ -22,6 +22,12 @@ _start:
     lw a0, 0(a1)
     call main
 
+    # thread 1 wfi
+    csrr t0, mhartid
+    beqz t0, .L_EXIT
+    wfi
+
+.L_EXIT:
     rdcycle t2
     rdinstret t3
     sub t0,t2,t0

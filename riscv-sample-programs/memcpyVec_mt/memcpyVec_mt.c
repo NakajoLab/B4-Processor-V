@@ -1,15 +1,15 @@
-const char charArray[48]   = {0xA4, 0x3, 0x16, 0x5A, 0x84, 0xBD, 0x7A, 0xC4, 0x41, 0x55, 0x44, 0x6D, 0xE7, 0x3C, 0x0, 0x1B, 0xA7, 0x2A, 0x2C, 0x2B, 0xE4, 0xC7, 0x3, 0x82, 0xB8, 0xAB, 0xA1, 0x90, 0xF3, 0x1B, 0x81, 0x5, 0xE7, 0x6C, 0xA7, 0xD, 0x19, 0x2A, 0xC4, 0x31, 0x98, 0x5, 0xFA, 0xDE, 0x88, 0x1D, 0xA0, 0x95};
-char targetArray[48]       = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-const char answerArray[48] = {0xA4, 0x3, 0x16, 0x5A, 0x84, 0xBD, 0x7A, 0xC4, 0x41, 0x55, 0x44, 0x6D, 0xE7, 0x3C, 0x0, 0x1B, 0xA7, 0x2A, 0x2C, 0x2B, 0xE4, 0xC7, 0x3, 0x82, 0xB8, 0xAB, 0xA1, 0x90, 0xF3, 0x1B, 0x81, 0x5, 0xE7, 0x6C, 0xA7, 0xD, 0x19, 0x2A, 0xC4, 0x31, 0x98, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-_Bool thread1Finished = 0xFF;
+const long charArray[10]   = {6150393738698145096, -2778327846724662266, -8467406063169314668, 3640924259398909674, -6424446445769269196, -5266053904934278905, -7022886145829593499, -8266817571845076872, -7546117979205758930, 6825206634430467364};
+long targetArray[10]       = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+const long answerArray[10] = {6150393738698145096, -2778327846724662266, -8467406063169314668, 3640924259398909674, -6424446445769269196, -5266053904934278905, -7022886145829593499, -8266817571845076872, -1, -1};
+char thread1Finished = 0xFF;
 
 #define PERFORMANCE_COUNT() do { asm volatile ("rdcycle x5; rdinstret x6"); } while(0)
 
-void* _memcpyVec_internal(void* dest, const void* src, long n) {
+long* _memcpyVecE64_internal(long* dest, const long* src, int n) {
   int i, vl, avl=n;
-  void* originalDest = dest;
+  long* originalDest = dest;
   while(avl != 0) {
-    asm volatile ("vsetvli %0, %1, e8, m1, ta, ma"
+    asm volatile ("vsetvli %0, %1, e64, m1, ta, ma"
     : "=r"(vl)
     : "r"(avl));
     // load src
@@ -25,41 +25,46 @@ void* _memcpyVec_internal(void* dest, const void* src, long n) {
   return originalDest;
 }
 
-void* memcpyVec(void* dest, const void* src, long n, int hartid) {
+long* memcpyVecE64(long* dest, const long* src, int n, int hartid) {
   int half = n >> 1;
   // スレッド0では前半のみ
   if(hartid == 0) {
-    _memcpyVec_internal(dest, src, half);
+    _memcpyVecE64_internal(dest, src, half);
   } else if(hartid == 1) {
     // 偶数なら後半半分
     if(n & 0x1 == 0){
-      _memcpyVec_internal(dest+half, src+half, half);
+      _memcpyVecE64_internal(dest+half, src+half, half);
     }
     // 奇数なら後半半分+1
     else {
-      _memcpyVec_internal(dest+half, src+half, half+1);
+      _memcpyVecE64_internal(dest+half, src+half, half+1);
     }
   }
   return dest;
 }
 
 long main(long loop_count) {
-  const char* src = (const char*)0x80100148;
-  char* dest = (char*)0x80100200;
-  const char* ans = (const char*)0x80100118;
+  const char* src = (const char*)0x80100218;
+  char* dest = (char*)0x80100300;
+  const char* ans = (const char*)0x801001c8;
   int i, hartid;
-  asm volatile ("csrr %0, mhartid");
+  asm volatile ("csrr %0, mhartid":"=r"(hartid));
   if(hartid == 0) {
     PERFORMANCE_COUNT();
   }
   asm volatile ("fence");
-  memcpyVec(dest, src, 41, hartid);
+  memcpyVecE64(dest, src, 8, hartid);
   asm volatile ("fence");
   if(hartid == 0) {
-    while(thread1Finished != 0x1);
+    char lock;
+    while(1) {
+      asm volatile ("lb %0, 0(%1)"
+      : "=r"(lock)
+      : "r"((char*)0x80100401));
+      if(lock == 1) break;
+    }
   } else if(hartid == 1) {
-    thread1Finished = 0x1;
-    asm volatile ("wfi");
+    *((char*)0x80100401) = 0x1;
     return 0;
   }
   PERFORMANCE_COUNT();
