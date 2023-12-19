@@ -31,14 +31,8 @@ long* memcpyVecE64(long* dest, const long* src, int n, int hartid) {
   if(hartid == 0) {
     _memcpyVecE64_internal(dest, src, half);
   } else if(hartid == 1) {
-    // 偶数なら後半半分
-    if(n & 0x1 == 0){
-      _memcpyVecE64_internal(dest+half, src+half, half);
-    }
-    // 奇数なら後半半分+1
-    else {
-      _memcpyVecE64_internal(dest+half, src+half, half+1);
-    }
+    // 偶数なら後半半分，奇数なら後半半分+1
+    _memcpyVecE64_internal(dest+half, src+half, half + (n & 0x1));
   }
   return dest;
 }
