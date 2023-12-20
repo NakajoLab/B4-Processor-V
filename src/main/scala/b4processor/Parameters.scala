@@ -1,6 +1,8 @@
 package b4processor
 
 import scala.math.pow
+import chisel3._
+import chisel3.util._
 
 /** プロセッサを生成する際のパラメータ
   *
@@ -47,6 +49,7 @@ case class Parameters(
   physicalVrfFor1Thread: Int = 48,
   fuckVectorMechanics: Boolean = false,
 ) {
+  require(isPow2(vlen), s"vlen(${vlen.toString}) is not power of 2.")
   def vlenb: Int = vlen/8
   def physicalVrfEntries: Int = physicalVrfFor1Thread * threads
 }
