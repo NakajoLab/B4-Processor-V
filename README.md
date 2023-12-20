@@ -89,3 +89,14 @@ error: hash mismatch in fixed-output derivation '/nix/store/01ghymlaf8f1r9ssqvdh
             got:    sha256-W1Kgoc58kruhLW0CDzvuUgAjuRZbT4QqStJLAAnPuhc=
 ```
 ここで出てきたハッシュに置き換えてmakeするとうまくビルドされると思います。
+
+### makeが通らない
+次のようなエラーが出た際は，
+```text
+error: opening file '/nix/store/d8bkk6vlxa010q9wc2qis4a2rkcz55w6-processor-test-programs.drv': No such file or directory
+```
+
+次を実行するとnixのなんやかんやを修復してくれる
+```sh
+$ nix-store --verify
+```
