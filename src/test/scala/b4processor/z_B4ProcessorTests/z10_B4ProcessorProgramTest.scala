@@ -733,7 +733,7 @@ class z10_B4ProcessorProgramTest
   it should "run 2-thread vector memcpy" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 2, decoderPerThread = 1, fuckVectorMechanics = false, vlen = 256)
+        defaultParams.copy(threads = 2, decoderPerThread = 1, fuckVectorMechanics = false, vlen = 128)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)

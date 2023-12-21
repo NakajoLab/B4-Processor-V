@@ -65,6 +65,7 @@ class DataMemoryBuffer(implicit params: Parameters)
   io.vectorOutput.foreach(o => {
     o.valid := false.B
     o.bits := DontCare
+    o.bits.last := false.B
   })
   io.vectorInput := DontCare
 
@@ -303,8 +304,8 @@ class DataMemoryBuffer(implicit params: Parameters)
       // ベクトルメモリアクセスならばio_memory_write_request_valid && readyの時点でRDをtrueにする
       // また、RDかつDRかつ最終要素のときに下げる
       RD := (!RD && !DD && RR && !DR) || (RD && !DD && !DR) || (((!RD && RR) || (RD && !(DD || (vecIdx === io.vCsr(entry.tag.threadId).getBurstLength)))) && (entry.mopOperation =/= MopOperation.None))
-      // TODO: ベクトルメモリストアの時に最後の要素がrequestData.readyになるまで待つ
       DD := ((!RD && !DD && !RR && DR) || (!RD && DD && !RR)) && ((entry.mopOperation === MopOperation.None) || vecIdx === io.vCsr(entry.tag.threadId).getBurstLength)
+      // TODO: bufOutputReadyの条件を確認する
       val bufOutputReady = ((!RD && !DD && RR && DR) || (!RD && DD && RR) || (RD && !DD && DR)) && ((entry.mopOperation === MopOperation.None) || vecIdx === io.vCsr(entry.tag.threadId).getBurstLength)
 
       when(bufOutputReady) {
@@ -339,7 +340,10 @@ class DataMemoryBuffer(implicit params: Parameters)
 
   when(io.memory.read.response.valid) {
     val arbIn = outputArbiter.io.in(1)
-    arbIn.valid := true.B
+    // ベクトルの場合，最終要素の時にvalidにする if(vectorOutput.valid) arbIn.valid when last
+    // ベクトルをやってなければ無条件でtrue，そうでなければlastの時のみtrue
+    arbIn.valid := !io.vectorOutput.map(_.valid).reduce(_ || _) || io.vectorOutput(buffer.output.bits.tag.threadId).bits.last
+    // arbIn.valid := true.B
     arbIn.bits.value := io.memory.read.response.bits.value
     arbIn.bits.isError := io.memory.read.response.bits.isError
     arbIn.bits.tag := io.memory.read.response.bits.tag
