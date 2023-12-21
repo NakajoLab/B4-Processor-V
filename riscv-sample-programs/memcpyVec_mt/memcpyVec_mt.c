@@ -38,9 +38,9 @@ long* memcpyVecE64(long* dest, const long* src, int n, int hartid) {
 }
 
 long main(long loop_count) {
-  const char* src = (const char*)0x80100218;
-  char* dest = (char*)0x80100300;
-  const char* ans = (const char*)0x801001c8;
+  const long* src = (const long*)0x80100218;
+  long* dest = (long*)0x80100300;
+  const long* ans = (const long*)0x801001c8;
   int i, hartid;
   asm volatile ("csrr %0, mhartid":"=r"(hartid));
   if(hartid == 0) {
@@ -51,17 +51,18 @@ long main(long loop_count) {
   asm volatile ("fence");
   if(hartid == 0) {
     char lock;
-    while(1) {
+    do {
       asm volatile ("lb %0, 0(%1)"
       : "=r"(lock)
       : "r"((char*)0x80100401));
-      if(lock == 1) break;
-    }
+    } while (lock != 1);
+    PERFORMANCE_COUNT();
+    for(i=0; i<10; i++) if(*(dest+i) != *(ans+i)) return 1;
+    return 1919;
   } else if(hartid == 1) {
     *((char*)0x80100401) = 0x1;
     return 0;
+  } else {
+    return 0;
   }
-  PERFORMANCE_COUNT();
-  for(i=0; i<48; i++) if(*(dest+i) != *(ans+i)) return 1;
-  return 1919;
 }
