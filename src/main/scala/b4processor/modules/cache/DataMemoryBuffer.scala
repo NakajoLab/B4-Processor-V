@@ -182,7 +182,7 @@ class DataMemoryBuffer(implicit params: Parameters)
         6.toHexString
       }
       // ベクトルメモリアクセスの際に最終要素まで待つ
-      when(io.memory.read.request.ready) {
+      when(io.memory.read.response.ready) {
         when(entry.mopOperation === MopOperation.UnitStride) {
           buffer.output.ready := io.vectorOutput(entry.tag.threadId).bits.last
           vecMemExecuting := !buffer.output.ready
