@@ -337,7 +337,7 @@ class DataMemoryBuffer(implicit params: Parameters)
     arbIn.bits.tag := io.memory.write.response.bits.tag
     io.memory.write.response.ready := arbIn.ready
   }
-
+  // ここのvalidとタグが怪しい
   when(io.memory.read.response.valid) {
     val arbIn = outputArbiter.io.in(1)
     // ベクトルの場合，最終要素の時にvalidにする if(vectorOutput.valid) arbIn.valid when last
