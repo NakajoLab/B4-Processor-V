@@ -118,6 +118,7 @@ class LoadStoreQueue(implicit params: Parameters)
     when(rb.valid) {
       for (buf <- buffer) {
         when(buf.valid && (rb.bits.destinationTag === buf.destinationTag)) {
+          // こ↑こ↓が怪しい可能性が微レ存
           buf.readyReorderSign := true.B
         }
       }

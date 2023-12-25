@@ -25,8 +25,8 @@ class DataMemoryBuffer(implicit params: Parameters)
     val vCsr = Vec(params.threads, Input(new VCsrBundle()))
     val memory = new MemoryAccessChannels()
     val output = Irrevocable(new OutputValue())
-    val vectorInput = Flipped(new VecRegFileReadIO())
-    val vectorOutput = ValidIO(new VecRegFileWriteReq())
+    val vectorInput = Vec(params.threads, Flipped(new VecRegFileReadIO()))
+    val vectorOutput = Vec(params.threads, ValidIO(new VecRegFileWriteReq()))
   })
 
   private val inputArbiter = Module(
@@ -62,8 +62,11 @@ class DataMemoryBuffer(implicit params: Parameters)
   // val accumulator = RegInit(0.U(params.xprlen.W))
   val vecMemExecuting = RegInit(false.B)
 
-  io.vectorOutput.valid := false.B
-  io.vectorOutput.bits := DontCare
+  io.vectorOutput.foreach(o => {
+    o.valid := false.B
+    o.bits := DontCare
+    o.bits.last := false.B
+  })
   io.vectorInput := DontCare
 
   // val vecMemAccessLast = vecIdx === (io.vCsr(buffer.output.bits.tag.threadId).vl - 1.U)
@@ -117,13 +120,13 @@ class DataMemoryBuffer(implicit params: Parameters)
         )
         // ベクトルメモリアクセスのresp
         when(io.memory.read.response.valid) {
-          io.vectorOutput.valid := true.B
-          io.vectorOutput.bits.vd := entry.destVecReg.bits
-          io.vectorOutput.bits.vtype := io.vCsr(entry.tag.threadId).vtype
-          io.vectorOutput.bits.index := io.memory.read.response.bits.burstIndex
-          io.vectorOutput.bits.last := (io.memory.read.response.bits.burstIndex === io.vCsr(entry.tag.threadId).getBurstLength)
-          io.vectorOutput.bits.data := io.memory.read.response.bits.value
-          io.vectorOutput.bits.vm := false.B
+          io.vectorOutput(entry.tag.threadId).valid := true.B
+          io.vectorOutput(entry.tag.threadId).bits.vd := entry.destVecReg.bits
+          io.vectorOutput(entry.tag.threadId).bits.vtype := io.vCsr(entry.tag.threadId).vtype
+          io.vectorOutput(entry.tag.threadId).bits.index := io.memory.read.response.bits.burstIndex
+          io.vectorOutput(entry.tag.threadId).bits.last := (io.memory.read.response.bits.burstIndex === io.vCsr(entry.tag.threadId).getBurstLength)
+          io.vectorOutput(entry.tag.threadId).bits.data := io.memory.read.response.bits.value
+          io.vectorOutput(entry.tag.threadId).bits.vm := false.B
 
           // sew=64 -> Seq.fill(8, true.B)
           // sew=32 -> if(vl(0)) Seq(4*false.B, 4*true.B)
@@ -174,17 +177,25 @@ class DataMemoryBuffer(implicit params: Parameters)
               })
             )
           )
-          io.vectorOutput.bits.writeStrb := Mux(io.vectorOutput.bits.last, toWriteStrb, VecInit(Seq.fill(8)(true.B)))
+          io.vectorOutput(entry.tag.threadId).bits.writeStrb := Mux(io.vectorOutput(entry.tag.threadId).bits.last, toWriteStrb, VecInit(Seq.fill(8)(true.B)))
         }
         6.toHexString
       }
       // ベクトルメモリアクセスの際に最終要素まで待つ
-      when(io.memory.read.request.ready) {
+      when(Mux(entry.mopOperation === MopOperation.None, io.memory.read.request.ready, io.memory.read.response.ready)) {
         when(entry.mopOperation === MopOperation.UnitStride) {
-          buffer.output.ready := io.vectorOutput.bits.last
-          vecMemExecuting := !buffer.output.ready
+          buffer.output.ready := io.vectorOutput(entry.tag.threadId).bits.last
+          // vecMemExecuting := !buffer.output.ready
         } .otherwise {
           buffer.output.ready := true.B
+        }
+      }
+      when(entry.mopOperation =/= MopOperation.None) {
+        when(io.memory.read.request.ready) {
+          vecMemExecuting := true.B
+        }
+        when(io.vectorOutput(entry.tag.threadId).bits.last) {
+          vecMemExecuting := false.B
         }
       }
     }.elsewhen(operationIsStore) {
@@ -247,10 +258,10 @@ class DataMemoryBuffer(implicit params: Parameters)
             ),
           )
         } .elsewhen(entry.mopOperation === MopOperation.UnitStride) {
-          io.vectorInput.req.vd := entry.srcVecReg.bits
-          io.vectorInput.req.sew := 3.U
-          io.vectorInput.req.idx := vecIdx
-          io.memory.write.requestData.bits.data := io.vectorInput.resp.vdOut
+          io.vectorInput(entry.tag.threadId).req.vd := entry.srcVecReg.bits
+          io.vectorInput(entry.tag.threadId).req.sew := 3.U
+          io.vectorInput(entry.tag.threadId).req.idx := vecIdx
+          io.memory.write.requestData.bits.data := io.vectorInput(entry.tag.threadId).resp.vdOut
           // TODO: vlとsewに応じて変える
           val rawMask = Wire(UInt(8.W))
           rawMask := MuxLookup(io.vCsr(entry.tag.threadId).vtype.vsew, "hFF".U)(
@@ -301,8 +312,8 @@ class DataMemoryBuffer(implicit params: Parameters)
       // ベクトルメモリアクセスならばio_memory_write_request_valid && readyの時点でRDをtrueにする
       // また、RDかつDRかつ最終要素のときに下げる
       RD := (!RD && !DD && RR && !DR) || (RD && !DD && !DR) || (((!RD && RR) || (RD && !(DD || (vecIdx === io.vCsr(entry.tag.threadId).getBurstLength)))) && (entry.mopOperation =/= MopOperation.None))
-      // TODO: ベクトルメモリストアの時に最後の要素がrequestData.readyになるまで待つ
       DD := ((!RD && !DD && !RR && DR) || (!RD && DD && !RR)) && ((entry.mopOperation === MopOperation.None) || vecIdx === io.vCsr(entry.tag.threadId).getBurstLength)
+      // TODO: bufOutputReadyの条件を確認する
       val bufOutputReady = ((!RD && !DD && RR && DR) || (!RD && DD && RR) || (RD && !DD && DR)) && ((entry.mopOperation === MopOperation.None) || vecIdx === io.vCsr(entry.tag.threadId).getBurstLength)
 
       when(bufOutputReady) {
@@ -334,10 +345,13 @@ class DataMemoryBuffer(implicit params: Parameters)
     arbIn.bits.tag := io.memory.write.response.bits.tag
     io.memory.write.response.ready := arbIn.ready
   }
-
+  // ここのvalidとタグが怪しい
   when(io.memory.read.response.valid) {
     val arbIn = outputArbiter.io.in(1)
-    arbIn.valid := true.B
+    // ベクトルの場合，最終要素の時にvalidにする if(vectorOutput.valid) arbIn.valid when last
+    // ベクトルをやってなければ無条件でtrue，そうでなければlastの時のみtrue
+    arbIn.valid := !io.vectorOutput.map(_.valid).reduce(_ || _) || io.vectorOutput(buffer.output.bits.tag.threadId).bits.last
+    // arbIn.valid := true.B
     arbIn.bits.value := io.memory.read.response.bits.value
     arbIn.bits.isError := io.memory.read.response.bits.isError
     arbIn.bits.tag := io.memory.read.response.bits.tag

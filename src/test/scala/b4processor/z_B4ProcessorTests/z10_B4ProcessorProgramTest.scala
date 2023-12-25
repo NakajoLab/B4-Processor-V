@@ -730,4 +730,16 @@ class z10_B4ProcessorProgramTest
       c.checkForRegister(3, 1919, 2000)
     }
   }
+  it should "run 2-thread vector memcpy" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 2, decoderPerThread = 1, fuckVectorMechanics = false, vlen = 128)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/memcpyVec_mt")
+      c.checkForRegister(3, 1919, 2000, 0)
+    }
+  }
 }

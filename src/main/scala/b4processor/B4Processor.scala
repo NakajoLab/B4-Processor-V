@@ -29,7 +29,7 @@ class B4Processor(implicit params: Parameters) extends Module {
     if (params.debug) Some(IO(Output(Vec(params.threads, Vec(32, UInt(64.W))))))
     else None
 
-  val vectorRegisterFileContents = if(params.debug) Some(IO(Output(Vec(32, UInt(params.vlen.W))))) else None
+  val vectorRegisterFileContents = if(params.debug) Some(IO(Output(Vec(params.threads, Vec(32, UInt(params.vlen.W)))))) else None
 
   require(params.decoderPerThread >= 1, "スレッド毎にデコーダは1以上必要です。")
   require(params.threads >= 1, "スレッド数は1以上です。")
@@ -92,11 +92,15 @@ class B4Processor(implicit params: Parameters) extends Module {
       Some(Seq.fill(params.pextExecutors)(Module(new B4PExtExecutor())))
     else None
 
-  private val vecRegFile = Module(new VecRegFile(vrfPortNum = 1))
-  vecRegFile.io := DontCare
+  private val vecRegFile = Seq.fill(params.threads)(Module(new VecRegFile(vrfPortNum = 1)))
+  vecRegFile.foreach(_.io := DontCare)
 
-  vecRegFile.io.writeReq(0) := dataMemoryBuffer.io.vectorOutput
-  vecRegFile.io.readReq(0) <> dataMemoryBuffer.io.vectorInput
+  for((vrf, dmbIoVecOut) <- vecRegFile zip dataMemoryBuffer.io.vectorOutput) {
+    vrf.io.writeReq(0) := dmbIoVecOut
+  }
+  for((vrf, dmbIoVecIn) <- vecRegFile zip dataMemoryBuffer.io.vectorInput) {
+    vrf.io.readReq(0) <> dmbIoVecIn
+  }
 
   axi <> externalMemoryInterface.io.coordinator
 
@@ -107,7 +111,9 @@ class B4Processor(implicit params: Parameters) extends Module {
         registerFileContents.get(tid)(i) <> registerFile(tid).io.values.get(i)
 
   if (params.debug) {
-    vectorRegisterFileContents.get := vecRegFile.io.debug.get
+    for((vrfContent, vrf) <- vectorRegisterFileContents.get zip vecRegFile) {
+      vrfContent := vrf.io.debug.get
+    }
   }
 
   if (params.enablePExt)
