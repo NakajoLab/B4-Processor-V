@@ -185,9 +185,17 @@ class DataMemoryBuffer(implicit params: Parameters)
       when(Mux(entry.mopOperation === MopOperation.None, io.memory.read.request.ready, io.memory.read.response.ready)) {
         when(entry.mopOperation === MopOperation.UnitStride) {
           buffer.output.ready := io.vectorOutput(entry.tag.threadId).bits.last
-          vecMemExecuting := !buffer.output.ready
+          // vecMemExecuting := !buffer.output.ready
         } .otherwise {
           buffer.output.ready := true.B
+        }
+      }
+      when(entry.mopOperation =/= MopOperation.None) {
+        when(io.memory.read.request.ready) {
+          vecMemExecuting := true.B
+        }
+        when(io.vectorOutput(entry.tag.threadId).bits.last) {
+          vecMemExecuting := false.B
         }
       }
     }.elsewhen(operationIsStore) {
