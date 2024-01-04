@@ -1167,3 +1167,11 @@ object MopOperation extends ChiselEnum {
 object UmopOperation extends ChiselEnum {
   val Normal, WholeReg, Mask = Value
 }
+
+object VectorOperation extends ChiselEnum {
+  val ADD, SUB, RSUB = Value
+}
+
+object VectorOperands extends ChiselEnum {
+  val IVV, FVV, MVV, IVI, IVX, FVF, MVX, CFG = Value
+}

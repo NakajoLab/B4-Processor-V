@@ -46,6 +46,7 @@ case class Parameters(
   xprlen: Int = 64,
   vlen: Int = 256,
   vecAluExecUnitNum: Int = 2,
+  vecExecBufIndexWidth: Int = 3,
   physicalVrfFor1Thread: Int = 48,
   fuckVectorMechanics: Boolean = false,
 ) {
