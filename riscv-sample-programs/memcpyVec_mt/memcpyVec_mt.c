@@ -61,7 +61,7 @@ long main(long loop_count) {
     return 1919;
   } else if(hartid == 1) {
     *((char*)0x80100401) = 0x1;
-    return 0;
+    asm volatile ("wfi");
   } else {
     return 0;
   }
