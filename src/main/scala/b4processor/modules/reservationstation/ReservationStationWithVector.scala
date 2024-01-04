@@ -2,6 +2,7 @@ package b4processor.modules.reservationstation
 
 import b4processor.Parameters
 import b4processor.connections.{CollectedOutput, Decoder2ReservationStation, LoadStoreQueue2ReorderBuffer, ReservationStation2Executor, ReservationStation2PExtExecutor, ReservationStation2VExtExecutor}
+import b4processor.utils.operations.VectorOperands
 import b4processor.utils.{FormalTools, MMArbiter}
 import chisel3._
 import chisel3.experimental.prefix
@@ -103,21 +104,24 @@ class ReservationStationWithVector(implicit params: Parameters)
     prefix(s"issue${i % params.decoderPerThread}_resv$i") {
       val a = vExtOutputArbiter.io.in(i)
       val r = reservation(i)
-      a.bits.operation := r.pextOperation
       a.bits.destinationTag := r.destinationTag
-      a.bits.value1 := r.sources(0).getValueUnsafe
-      a.bits.value2 := r.sources(1).getValueUnsafe
-      a.bits.value3 := r.sources(2).getValueUnsafe
-      a.valid := r.valid &&
-        r.sources(0).isValue &&
-        r.sources(1).isValue &&
-        r.sources(2).isValue &&
+      a.bits.destVecReg := r.destVecReg
+      a.bits.srcVecReg1 := r.srcVecReg1
+      a.bits.srcVecReg2 := r.srcVecReg2
+      // ベクトルではrs1の部分がスカラ値
+      a.bits.scalarVal := r.sources(0).getValueUnsafe
+      a.bits.vecOperation := r.vecOperation
+      a.bits.vecOperand := r.vecOperand
+      a.valid := r.valid && r.readyReorderSign &&
+        // readyReorderSignがあれば次の行の論理は不要？
+        !VectorOperands.readIntegerScalar(r.vecOperand) || r.sources(1).isValue &&
         !r.ispext && r.isVext
       when(a.valid && a.ready) {
         r := ReservationStationEntry.default
       }
     }
   }
+  io.vExtIssue <> vExtOutputArbiter.io.out
 
   // デコーダから
   private val head = RegInit(0.U(rsWidth.W))

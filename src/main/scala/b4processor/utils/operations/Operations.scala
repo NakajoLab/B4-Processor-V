@@ -36,6 +36,8 @@ class Operations extends Bundle {
   val amoWidth = AMOOperationWidth.Type()
   val amoOrdering = new AMOOrdering
   val pextOp = OptionalBundle(new PExtensionOperation.Type())
+  val vExtOperation = OptionalBundle(new VectorOperation.Type())
+  val vExtOperand = VectorOperands()
 
   class SourceDef extends Bundle {
     val reg = new RVRegister
@@ -47,12 +49,12 @@ class Operations extends Bundle {
   val vecExec = Bool()
   val vMop = MopOperation()
   val vUmop = UmopOperation()
-  // val vs1 = UInt(5.W)
-  // val vs2 = UInt(5.W)
+  val vs1 = UInt(5.W)
+  val vs2 = UInt(5.W)
   val vs3 = UInt(5.W)
   val vd = UInt(5.W)
-  // val vs1Valid = Bool()
-  // val vs2Valid = Bool()
+  val vs1Valid = Bool()
+  val vs2Valid = Bool()
   val vs3Valid = Bool()
   val vdValid = Bool()
 }
@@ -117,12 +119,12 @@ object Operations {
     _.vecExec -> false.B,
     _.vMop -> MopOperation.UnitStride,
     _.vUmop -> UmopOperation.Normal,
-    // _.vs1 -> 0.U,
-    // _.vs2 -> 0.U,
+    _.vs1 -> 0.U,
+    _.vs2 -> 0.U,
     _.vs3 -> 0.U,
     _.vd -> 0.U,
-    // _.vs1Valid -> false.B,
-    // _.vs2Valid -> false.B,
+    _.vs1Valid -> false.B,
+    _.vs2Valid -> false.B,
     _.vs3Valid -> false.B,
     _.vdValid -> false.B,
   )
@@ -290,6 +292,51 @@ object Operations {
       (u, _) => u.vUmop -> umop,
       _.vs3 -> _(11, 7),
       (u, _) => u.vs3Valid -> true.B,
+    )
+
+  // OPIVV, OPMVV
+  def vArithOpVV(
+    operation: VectorOperation.Type,
+    operand: VectorOperands.Type
+  ): (UInt, UInt) => Operations =
+    createOperation(
+      (u, _) => u.vExtOperation -> valid(operation),
+      (u, _) => u.vExtOperand -> operand,
+      _.vs1 -> _(19, 15),
+      _.vs2 -> _(24, 20),
+      _.vd -> _(11, 7),
+      (u, _) => u.vs1Valid -> true.B,
+      (u, _) => u.vs2Valid -> true.B,
+      (u, _) => u.vdValid -> true.B,
+    )
+
+  def vArithOpVI(
+    operation: VectorOperation.Type,
+  ): (UInt, UInt) => Operations =
+    createOperation(
+      (u, _) => u.vExtOperation -> valid(operation),
+      (u, _) => u.vExtOperand -> VectorOperands.IVI,
+      (u, _) => u.sources(0).reg -> 0.reg,
+      _.sources(0).value -> _(19, 15).asSInt.pad(64).asUInt,
+      (u, _) => u.sources(0).valid -> true.B,
+      _.vs2 -> _(24, 20),
+      _.vd -> _(11, 7),
+      (u, _) => u.vs2Valid -> true.B,
+      (u, _) => u.vdValid -> true.B,
+    )
+
+  def vArithOpVX(
+    operation: VectorOperation.Type,
+    operand: VectorOperands.Type
+  ): (UInt, UInt) => Operations =
+    createOperation(
+      (u, _) => u.vExtOperation -> valid(operation),
+      (u, _) => u.vExtOperand -> operand,
+      _.sources(0).reg -> _(19, 15).reg,
+      _.vs2 -> _(24, 20),
+      _.vd -> _(11, 7),
+      (u, _) => u.vs2Valid -> true.B,
+      (u, _) => u.vdValid -> true.B,
     )
 
   /*
@@ -1174,4 +1221,8 @@ object VectorOperation extends ChiselEnum {
 
 object VectorOperands extends ChiselEnum {
   val IVV, FVV, MVV, IVI, IVX, FVF, MVX, CFG = Value
+  def readIntegerScalar(op: VectorOperands.Type): Bool = {
+    // IVXまたはMVXならば汎用整数レジスタから読み込み
+    Seq(IVX, MVX).map(_ === op).reduce(_ || _)
+  }
 }

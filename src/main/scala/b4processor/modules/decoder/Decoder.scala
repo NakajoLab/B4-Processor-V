@@ -97,6 +97,7 @@ class Decoder(implicit params: Parameters) extends Module with FormalTools {
     rs.operation := operations.aluOp.validDataOrZero
     rs.pextOperation := operations.pextOp.validDataOrZero
     rs.ispext := operations.pextOp.valid
+    rs.isVext := operations.vExtOperation.valid
     rs.destinationTag := destinationTag
     rs.sources zip values zip sourceTags zip operations.sources foreach {
       case (((rs_s, v), st), o) =>
@@ -109,6 +110,12 @@ class Decoder(implicit params: Parameters) extends Module with FormalTools {
 
     rs.branchOffset := operations.branchOffset
     rs.wasCompressed := io.instructionFetch.bits.wasCompressed
+    rs.readyReorderSign := false.B
+    rs.destVecReg := operations.vd
+    rs.srcVecReg1 := operations.vs1
+    rs.srcVecReg2 := operations.vs2
+    rs.vecOperation := operations.vExtOperation.bits
+    rs.vecOperand := operations.vExtOperand
   }
 
   // load or store命令の場合，LSQへ発送
