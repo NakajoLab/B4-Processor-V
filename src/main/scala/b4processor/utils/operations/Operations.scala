@@ -1194,4 +1194,7 @@ object VectorOperands extends ChiselEnum {
     // IVXまたはMVXならば汎用整数レジスタから読み込み
     Seq(IVX, MVX).map(_ === op).reduce(_ || _)
   }
+  def readVs1(op: VectorOperands.Type): Bool = {
+    Seq(IVV, FVV, MVV).map(_ === op).reduce(_ || _)
+  }
 }
