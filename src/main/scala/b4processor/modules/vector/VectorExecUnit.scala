@@ -2,7 +2,7 @@ package b4processor.modules.vector
 
 import b4processor.Parameters
 import b4processor.connections._
-import b4processor.utils.operations.VectorOperands
+import b4processor.utils.operations._
 import chisel3._
 import chisel3.experimental.BundleLiterals._
 import circt.stage.ChiselStage
@@ -80,6 +80,7 @@ abstract class VectorExecUnit(implicit params: Parameters) extends Module {
   io.vectorOutput.valid := instInfoReg.valid
   io.vectorOutput.bits.vtype := io.vCsr(instInfoReg.bits.destinationTag.threadId).vtype
   io.vectorOutput.bits.vd := instInfoReg.bits.destVecReg
+  io.vectorOutput.bits.vm := false.B
 
   val toWriteStrb = Wire(Vec(8, Bool()))
   toWriteStrb := MuxLookup(io.vCsr(instInfoReg.bits.destinationTag.threadId).vtype.vsew, VecInit(Seq.fill(8)(true.B)))(
@@ -141,7 +142,22 @@ abstract class VectorExecUnit(implicit params: Parameters) extends Module {
 }
 
 class IntegerAluExecUnit(implicit params: Parameters) extends VectorExecUnit {
+  require(params.xprlen == 64, "Only 64bit xprlen is supported. Please refer to 16bit Sensation anime for more details.")
   override def exec(reservation: ReservationStation2VExtExecutor, values: VecRegFileReadResp, vsew: UInt): Seq[UInt] = {
+    val vadd = Wire(UInt(params.xprlen.W))
+    vadd := 0.U(params.xprlen.W)
+    for(i <- 0 until 4) {
+      val elen = 8 << i
+      switch(vsew) {
+        is(i.U) {
+          val res = Wire(Vec(params.xprlen/elen, UInt(elen.W)))
+          for(j <- res.indices) {
+            res(j) := values.vs2Out(j*elen+elen-1, j*elen) + values.vs1Out(j*elen+elen-1, j*elen)
+          }
+          vadd := Cat(res.reverse)
+        }
+      }
+    }
 
     // vadd, vsub, vrsub, vadc, vmadc, (vsbc, vmsbc),
     // seq, sne,
@@ -150,92 +166,20 @@ class IntegerAluExecUnit(implicit params: Parameters) extends VectorExecUnit {
     // minu, min,
     // maxu, max,
     // merge, mv
-    // TODO: optimise (64bit加減算器1つで再現できる）
-    // is firtool doing enough optimisations?
-    vs2Out + vs1Out :: vs2Out - vs1Out :: vs1Out - vs2Out :: vadcResult.tail(1) :: vadcResult.head(1) :: vsbcResult.tail(1) :: vsbcResult.head(1) ::
-      (vs2Out === vs1Out) :: !(vs2Out === vs1Out) ::
-      (vs2Out < vs1Out) :: (vs2Out.asSInt < vs1Out.asSInt) :: !(vs2Out > vs1Out) :: !(vs2Out.asSInt > vs1Out.asSInt) ::
-      (vs2Out > vs1Out) :: (vs2Out.asSInt > vs1Out.asSInt) ::
-      Mux(vs2Out < vs1Out, vs2Out, vs1Out) :: Mux(vs2Out.asSInt < vs1Out.asSInt, vs2Out, vs1Out) ::
-      Mux(vs2Out > vs1Out, vs2Out, vs1Out) :: Mux(vs2Out.asSInt > vs1Out.asSInt, vs2Out, vs1Out) ::
-      Mux(vm, vs1Out, vs2Out) :: vs1Out ::
-      (vs2Out & vs1Out) :: (vs2Out | vs1Out) :: (vs2Out ^ vs1Out) ::
-      (vs2Mask && vs1Mask) :: !(vs2Mask && vs1Mask) :: (vs2Mask && !vs1Mask) :: (vs2Mask ^ vs1Mask) ::
-      (vs2Mask || vs1Mask) :: !(vs2Mask || vs1Mask) :: (vs2Mask || !vs1Mask) :: !(vs2Mask ^ vs1Mask) ::
-      multiplyResLowBits :: multiplyResHighBits :: multiplyResHighBits :: multiplyResHighBits ::
-      mulAddRes :: mulAddRes :: mulAddRes :: mulAddRes ::
-      // reduction
-      vs2Out + vs1Out :: Mux(vs2Out > vs1Out, vs2Out, vs1Out) :: Mux(vs2Out.asSInt > vs1Out.asSInt, vs2Out, vs1Out) ::
-      Mux(vs2Out < vs1Out, vs2Out, vs1Out) :: Mux(vs2Out.asSInt < vs1Out.asSInt, vs2Out, vs1Out) ::
-      (vs2Out & vs1Out) :: (vs2Out | vs1Out) :: (vs2Out ^ vs1Out) :: Nil
+    vadd :: Nil
   }
-
-  import VEU_FUN._
-  // TODO: vs1Outの判定はMVVではなくベクトルマスク命令か否かで
-  valueToExec.vs1Out := MuxCase(execValue1, Seq(
-    (instInfoReg.bits.vectorDecode.vSource === VSOURCE.MVV.asUInt) -> execValue1(7,0)(idx(2,0)),
-    (instInfoReg.bits.vectorDecode.veuFun.isReductionInst) -> Mux(idx === 0.U, execValue1, reductionAccumulator)
-  )) // Mux(instInfoReg.bits.vectorDecode.vSource === VSOURCE.MVV.asUInt, execValue1(7,0)(idx(2,0)), execValue1)
-  valueToExec.vs2Out := Mux(instInfoReg.bits.vectorDecode.vSource === VSOURCE.MVV.asUInt, execValue2(7,0)(idx(2,0)), execValue2)
-  // VMADC, VMSBCでマスクが無効(vm=1)の場合は0
-  valueToExec.vm := !(instInfoReg.bits.vectorDecode.veuFun.isCarryMask && instInfoReg.bits.vectorDecode.vm) && io.readVrf.resp.vm
-  // reductionでvm=0ならばaccumulatorをそのまま入れる
-  val rawResult = Mux(instInfoReg.bits.vectorDecode.veuFun.isReductionInst && !instInfoReg.bits.vectorDecode.vm && !io.readVrf.resp.vm,
-    reductionAccumulator,
-    MuxLookup(instInfoReg.bits.vectorDecode.veuFun, 0.U)(
-      Seq(ADD, SUB, RSUB, ADC, MADC, SBC, MSBC, SEQ, SNE, SLTU, SLT, SLEU, SLE, SGTU, SGT,
-        MINU, MIN, MAXU, MAX, MERGE, MV, AND, OR, XOR, MAND, MNAND, MANDN, MXOR, MOR, MNOR, MORN, MXNOR,
-        MUL, MULH, MULHU, MULHSU, MACC, NMSAC, MADD, NMSUB,
-        REDSUM, REDMAXU, REDMAX, REDMINU, REDMIN, REDAND, REDOR, REDXOR).zipWithIndex.map(
-        x => x._1.asUInt -> execResult(x._2)
-      )
-    ))
-  reductionAccumulator := rawResult
-
-  io.dataOut.toVRF.bits.data := Mux(instInfoReg.bits.vectorDecode.veuFun.writeAsMask, MuxLookup(idx(2, 0), rawResult)(
-    (0 until 8).map(
-      i => i.U -> Cat((0 until 8).reverse.map(
-        j => if (j == i) rawResult(0) else io.readVrf.resp.vdOut(j)
-      ))
+  import VectorOperation._
+  val rawResult = MuxLookup(instInfoReg.bits.vecOperation, 0.U)(
+    Seq(ADD).zipWithIndex.map(
+      x => x._1 -> execResult(x._2)
     )
-  ), rawResult)
-  io.dataOut.toVRF.bits.vm := instInfoReg.bits.vectorDecode.veuFun.writeAsMask
-  // vadc, vmadc, bsbc, vmsbc, vmerge, vmand...vmxnor writes to VRF regardless of vm
-  // reductionならば最後のみ書く
-  io.dataOut.toVRF.bits.writeReq := Mux(instInfoReg.bits.vectorDecode.veuFun.isReductionInst, io.dataOut.toVRF.bits.last, instInfoReg.bits.vectorDecode.vm || io.readVrf.resp.vm || instInfoReg.bits.vectorDecode.veuFun.ignoreMask || instInfoReg.bits.vectorDecode.veuFun.isMaskInst)
-  // reductionならばidxは0
-  when(instInfoReg.bits.vectorDecode.veuFun.isReductionInst) {
-    io.dataOut.toVRF.bits.index := 0.U
-  }
+  )
 
-  when(instInfoReg.valid) {
-    when(instInfoReg.bits.vectorDecode.veuFun === VEU_FUN.MV_X_S.asUInt) {
-      // vmv.x.s
-      io.dataOut.toVRF.valid := true.B
-      io.dataOut.toVRF.bits.last := true.B
-      io.dataOut.toVRF.bits.writeReq := false.B
-      io.toExWbReg.valid := true.B
-      io.toExWbReg.bits.vectorExecNum.get.bits := 1.U
-      io.toExWbReg.bits.vectorExecNum.get.valid := true.B
-      io.toExWbReg.bits.ctrlSignals.rd_index := instInfoReg.bits.vd
-      io.toExWbReg.bits.dataSignals.exResult := io.readVrf.resp.vs2Out
-    }.elsewhen(instInfoReg.bits.vectorDecode.veuFun === VEU_FUN.MV_S_X.asUInt) {
-      // vmv.s.x
-      io.dataOut.toVRF.valid := true.B
-      io.dataOut.toVRF.bits.data := instInfoReg.bits.scalarVal
-      io.dataOut.toVRF.bits.last := true.B
-      io.dataOut.toVRF.bits.writeReq := true.B
-      io.toExWbReg.valid := true.B
-      io.toExWbReg.bits.vectorExecNum.get.bits := 1.U
-      io.toExWbReg.bits.vectorExecNum.get.valid := true.B
-    }
-  }
+  io.vectorOutput.bits.data := rawResult
 }
 
 object IntegerAluExecUnit extends App {
-  implicit val params: HajimeCoreParams = HajimeCoreParams(useVector = true)
-  def apply(implicit params: HajimeCoreParams): IntegerAluExecUnit = {
-    if(params.useVector) new IntegerAluExecUnit() else throw new Exception("fuck")
-  }
-  ChiselStage.emitSystemVerilogFile(new IntegerAluExecUnit(), firtoolOpts = COMPILE_CONSTANTS.FIRTOOLOPS)
+  implicit val params: Parameters = Parameters()
+  def apply(implicit params: Parameters): IntegerAluExecUnit = new IntegerAluExecUnit()
+  ChiselStage.emitSystemVerilogFile(new IntegerAluExecUnit(), firtoolOpts =  Array("-disable-all-randomization", "-strip-debug-info", "-add-vivado-ram-address-conflict-synthesis-bug-workaround"))
 }
