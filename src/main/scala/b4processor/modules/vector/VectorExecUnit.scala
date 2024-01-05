@@ -80,7 +80,55 @@ abstract class VectorExecUnit(implicit params: Parameters) extends Module {
   io.vectorOutput.valid := instInfoReg.valid
   io.vectorOutput.bits.vtype := io.vCsr(instInfoReg.bits.destinationTag.threadId).vtype
   io.vectorOutput.bits.vd := instInfoReg.bits.destVecReg
-  io.vectorOutput.bits.writeStrb := ???
+
+  val toWriteStrb = Wire(Vec(8, Bool()))
+  toWriteStrb := MuxLookup(io.vCsr(instInfoReg.bits.destinationTag.threadId).vtype.vsew, VecInit(Seq.fill(8)(true.B)))(
+    (0 until 4).map(
+      i => i.U -> (if (i == 3) {
+        // e64
+        VecInit(Seq.fill(8)(true.B))
+      } else if(i == 2) {
+        // e32
+        val __internal = VecInit(Seq.fill(8)(false.B))
+        when(io.vCsr(instInfoReg.bits.destinationTag.threadId).vl(0)) {
+          __internal := VecInit(Seq.fill(4)(true.B) ++ Seq.fill(4)(false.B))
+        } .otherwise {
+          __internal := VecInit(Seq.fill(8)(true.B))
+        }
+        __internal
+      } else if(i==1) {
+        // e16
+        val __internal = VecInit(Seq.fill(8)(false.B))
+
+        __internal := MuxLookup(io.vCsr(instInfoReg.bits.destinationTag.threadId).vl(1,0), VecInit(Seq.fill(8)(true.B)))(
+          (0 until 4).map(
+            j => j.U -> (if(j==0) {
+              VecInit(Seq.fill(8)(true.B))
+            } else {
+              VecInit(Seq.fill(j*2)(true.B) ++ Seq.fill((4-j)*2)(false.B))
+            })
+          )
+        )
+        __internal
+      } else {
+        // e8
+        val __internal = VecInit(Seq.fill(8)(false.B))
+
+        __internal := MuxLookup(io.vCsr(instInfoReg.bits.destinationTag.threadId).vl(2,0), VecInit(Seq.fill(8)(true.B)))(
+          (0 until 8).map(
+            j => j.U -> (if(j==0) {
+              VecInit(Seq.fill(8)(true.B))
+            } else {
+              VecInit(Seq.fill(j)(true.B) ++ Seq.fill(8-j)(false.B))
+            })
+          )
+        )
+        __internal
+      })
+    )
+  )
+
+  io.vectorOutput.bits.writeStrb := Mux(io.vectorOutput.bits.last, toWriteStrb, VecInit(Seq.fill(8)(true.B)))
 
   io.reservationStation.ready := (!instInfoReg.valid || io.vectorOutput.bits.last) && io.output.ready
 
