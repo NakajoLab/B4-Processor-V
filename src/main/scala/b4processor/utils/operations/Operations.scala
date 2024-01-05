@@ -114,6 +114,8 @@ object Operations {
     _.amoWidth -> AMOOperationWidth.Word,
     _.amoOrdering -> AMOOrdering(false.B, false.B),
     _.pextOp -> invalid(PExtensionOperation.Type()),
+    _.vExtOperation -> invalid(VectorOperation.Type()),
+    _.vExtOperand -> VectorOperands.IVV,
     _.csrAddress -> 0.U,
     _.vecLdst -> false.B,
     _.vecExec -> false.B,
@@ -338,23 +340,6 @@ object Operations {
       (u, _) => u.vs2Valid -> true.B,
       (u, _) => u.vdValid -> true.B,
     )
-
-  /*
-  def vUnitStrideStoreOp(
-    width: LoadStoreWidth.Type,
-    umop: UmopOperation.Type,
-  ): (UInt, UInt) => Operations =
-    createOperation(
-      (u, _) => u.loadStoreOp -> LoadStoreOperation.Store,
-      (u, _) => u.loadStoreWidth -> width,
-      (u, _) => u.vMop -> MopOperation.UnitStride,
-      (u, _) => u.vUmop -> umop,
-      (u, _) => u.vecLdst -> true.B,
-      _.vd -> _(11, 7),
-      _.vdValid -> true.B,
-      _.sources(0).reg -> _(19, 15).reg,
-    )
-   */
 
   def BaseDecodingList = {
     Seq(

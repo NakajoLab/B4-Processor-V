@@ -24,6 +24,7 @@ SUBDIRS := fibonacci \
 			memcpyVec \
 			memcpyScalar \
 			memcpyVec_mt \
+			memcpyScalar_mt \
 			vsetvl \
 #      vectorBranch
 #			simple_loader_uart \

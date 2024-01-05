@@ -743,3 +743,67 @@ class z10_B4ProcessorProgramTest
     }
   }
 }
+
+class B4ProcessorMemcpyTests extends AnyFlatSpec with ChiselScalatestTester {
+  behavior of "B4Processor test programs"
+  // デバッグに時間がかかりすぎるのでパラメータを少し下げる。
+  implicit val defaultParams =
+    Parameters(
+      debug = true,
+      tagWidth = 4,
+      threads = 1,
+      decoderPerThread = 1,
+      //      enablePExt = true
+    )
+  val backendAnnotation = IcarusBackendAnnotation
+  val WriteWaveformAnnotation = WriteFstAnnotation
+
+  it should "run vector memcpy" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = false)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/memcpyVec")
+      c.checkForRegister(3, 1919, 2000)
+    }
+  }
+  it should "run scalar memcpy" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = true)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/memcpyScalar")
+      c.checkForRegister(3, 1919, 2000)
+    }
+  }
+  it should "run 2-thread vector memcpy" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 2, decoderPerThread = 1, fuckVectorMechanics = false, vlen = 128)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/memcpyVec_mt")
+      c.checkForRegister(3, 1919, 2000, 0)
+    }
+  }
+  it should "run 2-thread scalar memcpy" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 2, decoderPerThread = 1, fuckVectorMechanics = true, vlen = 128)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/memcpyScalar_mt")
+      c.checkForRegister(3, 1919, 2000, 0)
+    }
+  }
+}
