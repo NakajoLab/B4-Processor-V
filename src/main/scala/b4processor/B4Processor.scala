@@ -99,7 +99,7 @@ class B4Processor(implicit params: Parameters) extends Module {
   private val vExtExecutors =
     Seq.fill(params.vecAluExecUnitNum)(Module(new IntegerAluExecUnit()))
 
-  private val vecRegFile = Seq.fill(params.threads)(Module(new VecRegFile(vrfPortNum = 1)))
+  private val vecRegFile = Seq.fill(params.threads)(Module(new VecRegFile(vrfPortNum = 1 + params.vecAluExecUnitNum)))
   vecRegFile.foreach(_.io := DontCare)
 
   for((vrf, dmbIoVecOut) <- vecRegFile zip dataMemoryBuffer.io.vectorOutput) {
@@ -134,9 +134,17 @@ class B4Processor(implicit params: Parameters) extends Module {
       o.bits := 0.U.asTypeOf(new OutputValue())
     }
 
+  vExtExecutors.foreach(_.io.vectorInput := DontCare)
   for(ve <- 0 until params.vecAluExecUnitNum) {
     vExtIssueBuffer.io.executors(ve) <> vExtExecutors(ve).io.reservationStation
-    // TODO: OutputCollectorとVecRegFileとの接続
+    for(threadId <- 0 until params.threads) {
+      when(vExtExecutors(ve).io.output.bits.tag.threadId === threadId.U) {
+        vExtExecutors(ve).io.vectorInput <> vecRegFile(threadId).io.readReq(ve+1)
+        vecRegFile(threadId).io.writeReq(ve+1) := vExtExecutors(ve).io.vectorOutput
+      }
+      vExtExecutors(ve).io.vCsr(threadId) := csr(threadId).io.vCsrOutput
+    }
+    outputCollector.io.vExtExecutor(ve) <> vExtExecutors(ve).io.output
   }
 
   for (e <- 0 until params.executors) {
