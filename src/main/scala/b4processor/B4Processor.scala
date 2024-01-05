@@ -16,7 +16,7 @@ import b4processor.modules.outputcollector.{OutputCollector, OutputCollector2}
 import b4processor.modules.registerfile.{RegisterFile, RegisterFileMem}
 import b4processor.modules.reorderbuffer.ReorderBuffer
 import b4processor.modules.reservationstation._
-import b4processor.modules.vector.VecRegFile
+import b4processor.modules.vector._
 import b4processor.utils.axi.{ChiselAXI, VerilogAXI}
 import chisel3._
 import chisel3.experimental.dataview.DataViewable
@@ -96,6 +96,8 @@ class B4Processor(implicit params: Parameters) extends Module {
     params.vecAluExecUnitNum,
     new ReservationStation2VExtExecutor(),
   ))
+  private val vExtExecutors =
+    Seq.fill(params.vecAluExecUnitNum)(Module(new IntegerAluExecUnit()))
 
   private val vecRegFile = Seq.fill(params.threads)(Module(new VecRegFile(vrfPortNum = 1)))
   vecRegFile.foreach(_.io := DontCare)
@@ -133,9 +135,8 @@ class B4Processor(implicit params: Parameters) extends Module {
     }
 
   for(ve <- 0 until params.vecAluExecUnitNum) {
-    // TODO: Add Vector Execution Unit
-    vExtIssueBuffer.io.executors(ve) := DontCare
-    vExtIssueBuffer.io.executors(ve).ready := true.B
+    vExtIssueBuffer.io.executors(ve) <> vExtExecutors(ve).io.reservationStation
+    // TODO: OutputCollectorとVecRegFileとの接続
   }
 
   for (e <- 0 until params.executors) {
