@@ -472,25 +472,9 @@ object Operations {
       VType("VSE16_V") -> vUnitStrideStoreOp(width = LoadStoreWidth.HalfWord, umop = UmopOperation.Normal),
       VType("VSE32_V") -> vUnitStrideStoreOp(width = LoadStoreWidth.Word, umop = UmopOperation.Normal),
       VType("VSE64_V") -> vUnitStrideStoreOp(width = LoadStoreWidth.DoubleWord, umop = UmopOperation.Normal),
-
-      /*
-      VType("VSE8") -> vUnitStrideStoreOp(
-        width = LoadStoreWidth.Byte,
-        umop = UmopOperation.Normal,
-      ),
-      VType("VSE16") -> vUnitStrideStoreOp(
-        width = LoadStoreWidth.HalfWord,
-        umop = UmopOperation.Normal,
-      ),
-      VType("VSE32") -> vUnitStrideStoreOp(
-        width = LoadStoreWidth.Word,
-        umop = UmopOperation.Normal,
-      ),
-      VType("VSE64") -> vUnitStrideStoreOp(
-        width = LoadStoreWidth.DoubleWord,
-        umop = UmopOperation.Normal,
-      ),
-       */
+      VType("VADD_VV") -> vArithOpVV(VectorOperation.ADD, VectorOperands.IVV),
+      VType("VADD_VX") -> vArithOpVX(VectorOperation.ADD, VectorOperands.IVX),
+      VType("VADD_VI") -> vArithOpVI(VectorOperation.ADD),
     )
   }
 
