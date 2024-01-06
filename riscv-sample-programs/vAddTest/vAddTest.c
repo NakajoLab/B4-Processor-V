@@ -43,5 +43,9 @@ long main(long loop_count) {
       break;
     }
   }
-  return !correct;
+  if(correct) {
+    return 1919;
+  } else {
+    return 0xFFFFFFFF;
+  }
 }
