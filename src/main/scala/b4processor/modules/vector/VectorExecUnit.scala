@@ -159,6 +159,21 @@ class IntegerAluExecUnit(implicit params: Parameters) extends VectorExecUnit {
       }
     }
 
+    val vmul = Wire(UInt(params.xprlen.W))
+    vmul := 0.U(params.xprlen.W)
+    for(i <- 0 until 4) {
+      val elen = 8 << i
+      switch(vsew) {
+        is(i.U) {
+          val res = Wire(Vec(params.xprlen/elen, UInt(elen.W)))
+          for(j <- res.indices) {
+            res(j) := values.vs2Out(j*elen+elen-1, j*elen) * values.vs1Out(j*elen+elen-1, j*elen)
+          }
+          vmul := Cat(res.reverse)
+        }
+      }
+    }
+
     // vadd, vsub, vrsub, vadc, vmadc, (vsbc, vmsbc),
     // seq, sne,
     // sltu, slt, sleu, sle,
@@ -166,15 +181,20 @@ class IntegerAluExecUnit(implicit params: Parameters) extends VectorExecUnit {
     // minu, min,
     // maxu, max,
     // merge, mv
-    vadd :: Nil
+    vadd :: vmul :: Nil
   }
   import VectorOperation._
+  valueToExec.vs1Out := Mux(opIsRedsum(instInfoReg.bits.vecOperation) && (idx =/= execValue1),
+    reductionAccumulator, execValue1)
+
   val rawResult = MuxLookup(instInfoReg.bits.vecOperation, 0.U)(
-    Seq(ADD).zipWithIndex.map(
+    Seq(ADD, MUL).zipWithIndex.map(
       x => x._1 -> execResult(x._2)
     )
   )
+  reductionAccumulator := rawResult
 
+  // TODO: Add VMUL, VREDSUM, VMV_S_X, VMV_X_S
   io.vectorOutput.bits.data := rawResult
 }
 

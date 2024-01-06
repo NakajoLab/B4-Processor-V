@@ -341,6 +341,9 @@ object Operations {
       (u, _) => u.vdValid -> true.B,
     )
 
+  // TODO: reduction専用を作る
+  def vRedArith(): (UInt, UInt) => Operations = ???
+
   def BaseDecodingList = {
     Seq(
       IType("BEQ") -> btypeOp(ALUOperation.BranchEqual),
@@ -1185,7 +1188,10 @@ object UmopOperation extends ChiselEnum {
 }
 
 object VectorOperation extends ChiselEnum {
-  val ADD, SUB, RSUB = Value
+  val ADD, SUB, RSUB, MUL, REDSUM = Value
+  def opIsRedsum(op: VectorOperation.Type): Bool = {
+    REDSUM === op
+  }
 }
 
 object VectorOperands extends ChiselEnum {
