@@ -807,3 +807,31 @@ class B4ProcessorMemcpyTests extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 }
+
+class B4ProcessorVectorArithmeticTests extends AnyFlatSpec with ChiselScalatestTester {
+  behavior of "B4Processor Vector Arithmetic tests"
+
+  implicit val defaultParams =
+    Parameters(
+      debug = true,
+      tagWidth = 4,
+      threads = 1,
+      decoderPerThread = 1,
+      //      enablePExt = true
+    )
+  val backendAnnotation = IcarusBackendAnnotation
+  val WriteWaveformAnnotation = WriteFstAnnotation
+
+  it should "run vector add" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = false)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/vAddTest")
+      c.checkForRegister(3, 1919, 2000)
+    }
+  }
+}

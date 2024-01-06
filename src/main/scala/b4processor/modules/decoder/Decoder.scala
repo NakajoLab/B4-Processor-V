@@ -92,7 +92,7 @@ class Decoder(implicit params: Parameters) extends Module with FormalTools {
   rs := 0.U.asTypeOf(new ReservationStationEntry)
   rs.valid := io.instructionFetch.ready &&
     io.instructionFetch.valid &&
-    (operations.aluOp.isValid || operations.pextOp.isValid)
+    (operations.aluOp.isValid || operations.pextOp.isValid || operations.vExtOperation.isValid)
   when(rs.valid) {
     rs.operation := operations.aluOp.validDataOrZero
     rs.pextOperation := operations.pextOp.validDataOrZero
