@@ -35,10 +35,12 @@ class Decoder(implicit params: Parameters) extends Module with FormalTools {
   io.reorderBuffer.isDecodeError := io.instructionFetch.valid && !operations.valid
 
   // all memory access (both load and store), amo(gus), csr is in-order
+  // この信号はROBから該当命令が先頭か否かを示す信号を出すのに使われる
   val operationInorder =
     operations.loadStoreOp.isValid ||
       operations.amoOp.isValid ||
-      operations.csrOp.isValid
+      operations.csrOp.isValid ||
+      operations.vExtOperation.isValid
 
   // リオーダバッファへの入力
   io.reorderBuffer.sources zip operations.sources foreach { case (rob, o) =>

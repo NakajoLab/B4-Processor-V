@@ -113,8 +113,7 @@ class ReservationStationWithVector(implicit params: Parameters)
       a.bits.vecOperation := r.vecOperation
       a.bits.vecOperand := r.vecOperand
       a.valid := r.valid && r.readyReorderSign &&
-        // readyReorderSignがあれば次の行の論理は不要？
-        !VectorOperands.readIntegerScalar(r.vecOperand) || r.sources(1).isValue &&
+        (!VectorOperands.readIntegerScalar(r.vecOperand) || r.sources(1).isValue) &&
         !r.ispext && r.isVext
       when(a.valid && a.ready) {
         r := ReservationStationEntry.default

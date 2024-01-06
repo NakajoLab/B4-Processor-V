@@ -6,8 +6,8 @@ const int answerArray[19] = {187, 65, 282, 302, 138, 271, 297, 265, 321, 123, 33
 long main(long loop_count) {
   long vl, avl = 19;
   // ここにarray0を直接入れるとメモリの権限関係でコンパイルできない
-  int *ptr0 = (int*)0x80100168;
-  int *ptr1 = (int*)0x80100118;
+  int *ptr0 = (int*)0x80100190;
+  int *ptr1 = (int*)0x80100140;
   int *dest = (int*)0x80100208;
   while(avl != 0) {
     // 256bit -> 32 * 8 elements
@@ -33,7 +33,7 @@ long main(long loop_count) {
     dest += vl;
     avl -= vl;
   }
-  int* ans = (int*)0x801000c8;
+  int* ans = (int*)0x801000f0;
   dest = (int*)0x80100208;
   _Bool correct = 1;
   int i;
@@ -43,5 +43,5 @@ long main(long loop_count) {
       break;
     }
   }
-  return 0;
+  return !correct;
 }
