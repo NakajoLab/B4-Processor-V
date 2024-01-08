@@ -194,7 +194,7 @@ class IntegerAluExecUnit(implicit params: Parameters) extends VectorExecUnit {
     vadd :: vmul :: vredsum :: Nil
   }
   import VectorOperation._
-  valueToExec.vs1Out := Mux(opIsRedsum(instInfoReg.bits.vecOperation) && (idx =/= execValue1),
+  valueToExec.vs1Out := Mux(opIsRedsum(instInfoReg.bits.vecOperation) && (idx =/= 0.U),
     reductionAccumulator, execValue1)
   // reductionの場合，末尾要素には0を入れる
   when(opIsRedsum(instInfoReg.bits.vecOperation)) {
