@@ -24,6 +24,12 @@ SUBDIRS := fibonacci \
 			memcpyVec \
 			memcpyScalar \
 			memcpyVec_mt \
+			memcpyScalar_mt \
+			vAddTest \
+			scalar_vAdd \
+			vRedSumTest \
+			vecInnerProdTest \
+			vecMatMulTest \
 			vsetvl \
 #      vectorBranch
 #			simple_loader_uart \

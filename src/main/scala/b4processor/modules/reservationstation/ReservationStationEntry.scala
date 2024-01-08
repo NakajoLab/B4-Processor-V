@@ -5,7 +5,7 @@ import b4processor.modules.PExt.PExtensionOperation
 import b4processor.modules.reorderbuffer.ReorderBufferEntry
 import b4processor.utils.RVRegister.AddRegConstructor
 import b4processor.utils.{ForPext, Tag, TagValueBundle}
-import b4processor.utils.operations.ALUOperation
+import b4processor.utils.operations._
 import chisel3._
 import chisel3.experimental.BundleLiterals.AddBundleLiteralConstructor
 
@@ -24,7 +24,15 @@ class ReservationStationEntry(implicit params: Parameters) extends Bundle {
   val branchOffset = SInt(12.W)
   val pextOperation = PExtensionOperation()
   val ispext = Bool()
+  val isVext = Bool()
   val valid = Bool()
+  val readyReorderSign = Bool()
+  val destVecReg = UInt(5.W)
+  val srcVecReg1 = UInt(5.W)
+  val srcVecReg2 = UInt(5.W)
+  val vecOperation = VectorOperation()
+  val vecOperand = VectorOperands()
+
 }
 
 object ReservationStationEntry {
@@ -39,9 +47,16 @@ object ReservationStationEntry {
       _.operation -> ALUOperation.BranchEqual,
       _.pextOperation -> PExtensionOperation.ADD16,
       _.ispext -> false.B,
+      _.isVext -> false.B,
       _.destinationTag -> Tag(0, 0),
       _.wasCompressed -> false.B,
       _.branchOffset -> 0.S,
       _.valid -> false.B,
+      _.readyReorderSign -> false.B,
+      _.destVecReg -> 0.U,
+      _.srcVecReg1 -> 0.U,
+      _.srcVecReg2 -> 0.U,
+      _.vecOperation -> VectorOperation.ADD,
+      _.vecOperand -> VectorOperands.IVV,
     )
 }

@@ -35,10 +35,12 @@ class Decoder(implicit params: Parameters) extends Module with FormalTools {
   io.reorderBuffer.isDecodeError := io.instructionFetch.valid && !operations.valid
 
   // all memory access (both load and store), amo(gus), csr is in-order
+  // この信号はROBから該当命令が先頭か否かを示す信号を出すのに使われる
   val operationInorder =
     operations.loadStoreOp.isValid ||
       operations.amoOp.isValid ||
-      operations.csrOp.isValid
+      operations.csrOp.isValid ||
+      operations.vExtOperation.isValid
 
   // リオーダバッファへの入力
   io.reorderBuffer.sources zip operations.sources foreach { case (rob, o) =>
@@ -92,11 +94,12 @@ class Decoder(implicit params: Parameters) extends Module with FormalTools {
   rs := 0.U.asTypeOf(new ReservationStationEntry)
   rs.valid := io.instructionFetch.ready &&
     io.instructionFetch.valid &&
-    (operations.aluOp.isValid || operations.pextOp.isValid)
+    (operations.aluOp.isValid || operations.pextOp.isValid || operations.vExtOperation.isValid)
   when(rs.valid) {
     rs.operation := operations.aluOp.validDataOrZero
     rs.pextOperation := operations.pextOp.validDataOrZero
     rs.ispext := operations.pextOp.valid
+    rs.isVext := operations.vExtOperation.valid
     rs.destinationTag := destinationTag
     rs.sources zip values zip sourceTags zip operations.sources foreach {
       case (((rs_s, v), st), o) =>
@@ -109,6 +112,12 @@ class Decoder(implicit params: Parameters) extends Module with FormalTools {
 
     rs.branchOffset := operations.branchOffset
     rs.wasCompressed := io.instructionFetch.bits.wasCompressed
+    rs.readyReorderSign := false.B
+    rs.destVecReg := operations.vd
+    rs.srcVecReg1 := operations.vs1
+    rs.srcVecReg2 := operations.vs2
+    rs.vecOperation := operations.vExtOperation.bits
+    rs.vecOperand := operations.vExtOperand
   }
 
   // load or store命令の場合，LSQへ発送

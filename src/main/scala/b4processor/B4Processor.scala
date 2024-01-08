@@ -1,6 +1,6 @@
 package b4processor
 
-import b4processor.connections.{OutputValue, ReservationStation2Executor, ReservationStation2PExtExecutor}
+import b4processor.connections._
 import b4processor.modules.AtomicLSU
 import b4processor.modules.PExt.B4PExtExecutor
 import circt.stage.ChiselStage
@@ -15,8 +15,8 @@ import b4processor.modules.memory.ExternalMemoryInterface
 import b4processor.modules.outputcollector.{OutputCollector, OutputCollector2}
 import b4processor.modules.registerfile.{RegisterFile, RegisterFileMem}
 import b4processor.modules.reorderbuffer.ReorderBuffer
-import b4processor.modules.reservationstation.{IssueBuffer, IssueBuffer2, IssueBuffer3, ReservationStation, ReservationStation2}
-import b4processor.modules.vector.VecRegFile
+import b4processor.modules.reservationstation._
+import b4processor.modules.vector._
 import b4processor.utils.axi.{ChiselAXI, VerilogAXI}
 import chisel3._
 import chisel3.experimental.dataview.DataViewable
@@ -62,7 +62,7 @@ class B4Processor(implicit params: Parameters) extends Module {
   )
   private val reservationStation =
     Seq.fill(params.threads)(
-      Seq.fill(params.decoderPerThread)(Module(new ReservationStation2)),
+      Seq.fill(params.decoderPerThread)(Module(new ReservationStationWithVector())),
     )
   private val issueBuffer = Module(
     new IssueBuffer3(params.executors, new ReservationStation2Executor),
@@ -92,7 +92,14 @@ class B4Processor(implicit params: Parameters) extends Module {
       Some(Seq.fill(params.pextExecutors)(Module(new B4PExtExecutor())))
     else None
 
-  private val vecRegFile = Seq.fill(params.threads)(Module(new VecRegFile(vrfPortNum = 1)))
+  private val vExtIssueBuffer = Module(new IssueBuffer3(
+    params.vecAluExecUnitNum,
+    new ReservationStation2VExtExecutor(),
+  ))
+  private val vExtExecutors =
+    Seq.fill(params.vecAluExecUnitNum)(Module(new IntegerAluExecUnit()))
+
+  private val vecRegFile = Seq.fill(params.threads)(Module(new VecRegFile(vrfPortNum = 1 + params.vecAluExecUnitNum)))
   vecRegFile.foreach(_.io := DontCare)
 
   for((vrf, dmbIoVecOut) <- vecRegFile zip dataMemoryBuffer.io.vectorOutput) {
@@ -126,6 +133,19 @@ class B4Processor(implicit params: Parameters) extends Module {
       o.valid := false.B
       o.bits := 0.U.asTypeOf(new OutputValue())
     }
+
+  vExtExecutors.foreach(_.io.vectorInput := DontCare)
+  for(ve <- 0 until params.vecAluExecUnitNum) {
+    vExtIssueBuffer.io.executors(ve) <> vExtExecutors(ve).io.reservationStation
+    for(threadId <- 0 until params.threads) {
+      when(vExtExecutors(ve).io.output.bits.tag.threadId === threadId.U) {
+        vExtExecutors(ve).io.vectorInput <> vecRegFile(threadId).io.readReq(ve+1)
+        vecRegFile(threadId).io.writeReq(ve+1) := vExtExecutors(ve).io.vectorOutput
+      }
+      vExtExecutors(ve).io.vCsr(threadId) := csr(threadId).io.vCsrOutput
+    }
+    outputCollector.io.vExtExecutor(ve) <> vExtExecutors(ve).io.output
+  }
 
   for (e <- 0 until params.executors) {
 
@@ -198,6 +218,10 @@ class B4Processor(implicit params: Parameters) extends Module {
           pextIssueBuffer.get.io.reservationStations(tid)(d)
       else
         reservationStation(tid)(d).io.pextIssue.ready := false.B
+
+      reservationStation(tid)(d).io.vExtIssue <> vExtIssueBuffer.io.reservationStations(tid)(d)
+
+      reservationStation(tid)(d).io.reorderBuffer := reorderBuffer(tid).io.loadStoreQueue
 
       amo.io.decoders(tid)(d) <> decoders(tid)(d).io.amo
 

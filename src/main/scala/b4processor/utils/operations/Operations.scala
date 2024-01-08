@@ -36,6 +36,8 @@ class Operations extends Bundle {
   val amoWidth = AMOOperationWidth.Type()
   val amoOrdering = new AMOOrdering
   val pextOp = OptionalBundle(new PExtensionOperation.Type())
+  val vExtOperation = OptionalBundle(new VectorOperation.Type())
+  val vExtOperand = VectorOperands()
 
   class SourceDef extends Bundle {
     val reg = new RVRegister
@@ -47,12 +49,12 @@ class Operations extends Bundle {
   val vecExec = Bool()
   val vMop = MopOperation()
   val vUmop = UmopOperation()
-  // val vs1 = UInt(5.W)
-  // val vs2 = UInt(5.W)
+  val vs1 = UInt(5.W)
+  val vs2 = UInt(5.W)
   val vs3 = UInt(5.W)
   val vd = UInt(5.W)
-  // val vs1Valid = Bool()
-  // val vs2Valid = Bool()
+  val vs1Valid = Bool()
+  val vs2Valid = Bool()
   val vs3Valid = Bool()
   val vdValid = Bool()
 }
@@ -112,17 +114,19 @@ object Operations {
     _.amoWidth -> AMOOperationWidth.Word,
     _.amoOrdering -> AMOOrdering(false.B, false.B),
     _.pextOp -> invalid(PExtensionOperation.Type()),
+    _.vExtOperation -> invalid(VectorOperation.Type()),
+    _.vExtOperand -> VectorOperands.IVV,
     _.csrAddress -> 0.U,
     _.vecLdst -> false.B,
     _.vecExec -> false.B,
     _.vMop -> MopOperation.UnitStride,
     _.vUmop -> UmopOperation.Normal,
-    // _.vs1 -> 0.U,
-    // _.vs2 -> 0.U,
+    _.vs1 -> 0.U,
+    _.vs2 -> 0.U,
     _.vs3 -> 0.U,
     _.vd -> 0.U,
-    // _.vs1Valid -> false.B,
-    // _.vs2Valid -> false.B,
+    _.vs1Valid -> false.B,
+    _.vs2Valid -> false.B,
     _.vs3Valid -> false.B,
     _.vdValid -> false.B,
   )
@@ -292,22 +296,67 @@ object Operations {
       (u, _) => u.vs3Valid -> true.B,
     )
 
-  /*
-  def vUnitStrideStoreOp(
-    width: LoadStoreWidth.Type,
-    umop: UmopOperation.Type,
+  // OPIVV, OPMVV
+  def vArithOpVV(
+    operation: VectorOperation.Type,
+    operand: VectorOperands.Type
   ): (UInt, UInt) => Operations =
     createOperation(
-      (u, _) => u.loadStoreOp -> LoadStoreOperation.Store,
-      (u, _) => u.loadStoreWidth -> width,
-      (u, _) => u.vMop -> MopOperation.UnitStride,
-      (u, _) => u.vUmop -> umop,
-      (u, _) => u.vecLdst -> true.B,
+      (u, _) => u.vExtOperation -> valid(operation),
+      (u, _) => u.vExtOperand -> operand,
+      _.vs1 -> _(19, 15),
+      _.vs2 -> _(24, 20),
       _.vd -> _(11, 7),
-      _.vdValid -> true.B,
-      _.sources(0).reg -> _(19, 15).reg,
+      (u, _) => u.vs1Valid -> true.B,
+      (u, _) => u.vs2Valid -> true.B,
+      (u, _) => u.vdValid -> true.B,
     )
-   */
+
+  def vArithOpVI(
+    operation: VectorOperation.Type,
+  ): (UInt, UInt) => Operations =
+    createOperation(
+      (u, _) => u.vExtOperation -> valid(operation),
+      (u, _) => u.vExtOperand -> VectorOperands.IVI,
+      (u, _) => u.sources(0).reg -> 0.reg,
+      _.sources(0).value -> _(19, 15).asSInt.pad(64).asUInt,
+      (u, _) => u.sources(0).valid -> true.B,
+      _.vs2 -> _(24, 20),
+      _.vd -> _(11, 7),
+      (u, _) => u.vs2Valid -> true.B,
+      (u, _) => u.vdValid -> true.B,
+    )
+
+  def vArithOpVX(
+    operation: VectorOperation.Type,
+    operand: VectorOperands.Type
+  ): (UInt, UInt) => Operations =
+    createOperation(
+      (u, _) => u.vExtOperation -> valid(operation),
+      (u, _) => u.vExtOperand -> operand,
+      _.sources(0).reg -> _(19, 15).reg,
+      _.vs2 -> _(24, 20),
+      _.vd -> _(11, 7),
+      (u, _) => u.vs2Valid -> true.B,
+      (u, _) => u.vdValid -> true.B,
+    )
+
+  // TODO: VMV_X_S, VMV_S_X
+  def vPermutationIntegerScalarMove_VMV_X_S(): (UInt, UInt) => Operations =
+    createOperation(
+      (u, _) => u.vExtOperation -> valid(VectorOperation.MV_X_S),
+      _.rd -> _(11, 7).reg,
+      _.vs2 -> _(24, 20),
+      (u, _) => u.vs2Valid -> true.B,
+    )
+
+  def vPermutationIntegerScalarMove_VMV_S_X(): (UInt, UInt) => Operations =
+    createOperation(
+      (u, _) => u.vExtOperation -> valid(VectorOperation.MV_S_X),
+      _.sources(0).reg -> _(19, 15).reg,
+      _.vd -> _(11, 7),
+      (u, _) => u.vdValid -> true.B,
+    )
 
   def BaseDecodingList = {
     Seq(
@@ -429,6 +478,10 @@ object Operations {
       ZICSRType("CSRRCI") -> csrImmOp(CSROperation.ReadClear),
       ZICSRType("CSRRSI") -> csrImmOp(CSROperation.ReadSet),
       ZICSRType("CSRRWI") -> csrImmOp(CSROperation.ReadWrite),
+
+      MType("MUL") -> rtypeOp(ALUOperation.Mul),
+      M64Type("MULW") -> rtypeOp(ALUOperation.MulW),
+
       VType("VSETVLI") -> vsetvliOp(CSROperation.SetVl),
       VType("VSETIVLI") -> vsetivliOp(CSROperation.SetVl),
       VType("VSETVL") -> vsetvlOp(CSROperation.SetVl),
@@ -440,25 +493,14 @@ object Operations {
       VType("VSE16_V") -> vUnitStrideStoreOp(width = LoadStoreWidth.HalfWord, umop = UmopOperation.Normal),
       VType("VSE32_V") -> vUnitStrideStoreOp(width = LoadStoreWidth.Word, umop = UmopOperation.Normal),
       VType("VSE64_V") -> vUnitStrideStoreOp(width = LoadStoreWidth.DoubleWord, umop = UmopOperation.Normal),
-
-      /*
-      VType("VSE8") -> vUnitStrideStoreOp(
-        width = LoadStoreWidth.Byte,
-        umop = UmopOperation.Normal,
-      ),
-      VType("VSE16") -> vUnitStrideStoreOp(
-        width = LoadStoreWidth.HalfWord,
-        umop = UmopOperation.Normal,
-      ),
-      VType("VSE32") -> vUnitStrideStoreOp(
-        width = LoadStoreWidth.Word,
-        umop = UmopOperation.Normal,
-      ),
-      VType("VSE64") -> vUnitStrideStoreOp(
-        width = LoadStoreWidth.DoubleWord,
-        umop = UmopOperation.Normal,
-      ),
-       */
+      VType("VADD_VV") -> vArithOpVV(VectorOperation.ADD, VectorOperands.IVV),
+      VType("VADD_VX") -> vArithOpVX(VectorOperation.ADD, VectorOperands.IVX),
+      VType("VADD_VI") -> vArithOpVI(VectorOperation.ADD),
+      VType("VMUL_VV") -> vArithOpVV(VectorOperation.MUL, VectorOperands.IVV),
+      VType("VMUL_VX") -> vArithOpVX(VectorOperation.MUL, VectorOperands.IVX),
+      VType("VREDSUM_VS") -> vArithOpVV(VectorOperation.REDSUM, VectorOperands.MVV),
+      VType("VMV_S_X") -> vPermutationIntegerScalarMove_VMV_S_X(),
+      VType("VMV_X_S") -> vPermutationIntegerScalarMove_VMV_X_S(),
     )
   }
 
@@ -1123,7 +1165,7 @@ object ALUOperation extends ChiselEnum {
   val BranchEqual, BranchNotEqual, BranchLessThan, BranchGreaterThanOrEqual,
     BranchLessThanUnsigned, BranchGreaterThanOrEqualUnsigned, Add, Sub, And, Or,
     Slt, Sltu, Xor, Sll, Srl, Sra, AddJALR, AddJAL, AddW, SllW, SrlW, SraW,
-    SubW = Value
+    SubW, Mul, MulW = Value
 }
 
 object LoadStoreOperation extends ChiselEnum {
@@ -1166,4 +1208,22 @@ object MopOperation extends ChiselEnum {
 
 object UmopOperation extends ChiselEnum {
   val Normal, WholeReg, Mask = Value
+}
+
+object VectorOperation extends ChiselEnum {
+  val ADD, SUB, RSUB, MUL, REDSUM, MV_X_S, MV_S_X = Value
+  def opIsRedsum(op: VectorOperation.Type): Bool = {
+    REDSUM === op
+  }
+}
+
+object VectorOperands extends ChiselEnum {
+  val IVV, FVV, MVV, IVI, IVX, FVF, MVX, CFG = Value
+  def readIntegerScalar(op: VectorOperands.Type): Bool = {
+    // IVXまたはMVXならば汎用整数レジスタから読み込み
+    Seq(IVX, MVX).map(_ === op).reduce(_ || _)
+  }
+  def readVs1(op: VectorOperands.Type): Bool = {
+    Seq(IVV, FVV, MVV).map(_ === op).reduce(_ || _)
+  }
 }
