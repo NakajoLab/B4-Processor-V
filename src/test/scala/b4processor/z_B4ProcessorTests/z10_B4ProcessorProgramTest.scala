@@ -847,4 +847,17 @@ class B4ProcessorVectorArithmeticTests extends AnyFlatSpec with ChiselScalatestT
       c.checkForRegister(3, 1919, 2000)
     }
   }
+
+  it should "run vMul and vRedsum" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = false)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/vRedSumTest")
+      c.checkForRegister(3, 1919, 2000)
+    }
+  }
 }

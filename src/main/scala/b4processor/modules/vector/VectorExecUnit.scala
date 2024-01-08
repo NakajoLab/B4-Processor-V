@@ -174,21 +174,40 @@ class IntegerAluExecUnit(implicit params: Parameters) extends VectorExecUnit {
       }
     }
 
-    // vadd, vsub, vrsub, vadc, vmadc, (vsbc, vmsbc),
-    // seq, sne,
-    // sltu, slt, sleu, sle,
-    // sgtu, sgt,
-    // minu, min,
-    // maxu, max,
-    // merge, mv
-    vadd :: vmul :: Nil
+    val vredsum = Wire(UInt(params.xprlen.W))
+    vredsum := 0.U(params.xprlen.W)
+    for(i <- 0 until 4) {
+      val elen = 8 << i
+      switch(vsew) {
+        is(i.U) {
+          val res = Wire(Vec(params.xprlen/elen, UInt(elen.W)))
+          res(0) := values.vs2Out(elen-1, 0) + values.vs1Out(elen-1, 0)
+          for(j <- 1 until res.length) {
+            res(j) := values.vs2Out(j*elen+elen-1, j*elen) + res(j-1)
+          }
+          vredsum := res.last
+        }
+      }
+    }
+
+    // VADD, VMUL, VREDSUM
+    vadd :: vmul :: vredsum :: Nil
   }
   import VectorOperation._
   valueToExec.vs1Out := Mux(opIsRedsum(instInfoReg.bits.vecOperation) && (idx =/= execValue1),
     reductionAccumulator, execValue1)
+  // reductionの場合，末尾要素には0を入れる
+  when(opIsRedsum(instInfoReg.bits.vecOperation)) {
+    // writeStrbがfalseの部分は0で無効化
+    val internalMask = Wire(Vec(8, UInt(8.W)))
+    for((d, i) <- internalMask.zipWithIndex) {
+      d := Mux(io.vectorOutput.bits.writeStrb(i), "hFF".U, "h00".U)
+    }
+    valueToExec.vs2Out := execValue2 & Cat(internalMask.reverse)
+  }
 
   val rawResult = MuxLookup(instInfoReg.bits.vecOperation, 0.U)(
-    Seq(ADD, MUL).zipWithIndex.map(
+    Seq(ADD, MUL, REDSUM).zipWithIndex.map(
       x => x._1 -> execResult(x._2)
     )
   )
@@ -196,6 +215,13 @@ class IntegerAluExecUnit(implicit params: Parameters) extends VectorExecUnit {
 
   // TODO: Add VMUL, VREDSUM, VMV_S_X, VMV_X_S
   io.vectorOutput.bits.data := rawResult
+
+  // reductionならば最後の要素のみ書き，かつidxは0
+  when(opIsRedsum(instInfoReg.bits.vecOperation)) {
+    // io.vectorOutput.bits.writeStrb.foreach(_ := io.vectorOutput.bits.last)
+    io.vectorOutput.valid := io.vectorOutput.bits.last
+    io.vectorOutput.bits.index := 0.U
+  }
 }
 
 object IntegerAluExecUnit extends App {

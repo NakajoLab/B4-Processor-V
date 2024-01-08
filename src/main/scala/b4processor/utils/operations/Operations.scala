@@ -478,6 +478,9 @@ object Operations {
       VType("VADD_VV") -> vArithOpVV(VectorOperation.ADD, VectorOperands.IVV),
       VType("VADD_VX") -> vArithOpVX(VectorOperation.ADD, VectorOperands.IVX),
       VType("VADD_VI") -> vArithOpVI(VectorOperation.ADD),
+      VType("VMUL_VV") -> vArithOpVV(VectorOperation.MUL, VectorOperands.IVV),
+      VType("VMUL_VX") -> vArithOpVX(VectorOperation.MUL, VectorOperands.IVX),
+      VType("VREDSUM_VS") -> vArithOpVV(VectorOperation.REDSUM, VectorOperands.MVV),
     )
   }
 

@@ -27,6 +27,7 @@ SUBDIRS := fibonacci \
 			memcpyScalar_mt \
 			vAddTest \
 			scalar_vAdd \
+			vRedSumTest \
 			vsetvl \
 #      vectorBranch
 #			simple_loader_uart \
