@@ -213,7 +213,7 @@ class IntegerAluExecUnit(implicit params: Parameters) extends VectorExecUnit {
   )
   reductionAccumulator := rawResult
 
-  // TODO: Add VMUL, VREDSUM, VMV_S_X, VMV_X_S
+  // TODO: Add VMV_S_X, VMV_X_S
   io.vectorOutput.bits.data := rawResult
 
   // reductionならば最後の要素のみ書き，かつidxは0

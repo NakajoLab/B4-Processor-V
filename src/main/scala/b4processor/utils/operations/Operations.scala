@@ -341,8 +341,22 @@ object Operations {
       (u, _) => u.vdValid -> true.B,
     )
 
-  // TODO: reduction専用を作る
-  def vRedArith(): (UInt, UInt) => Operations = ???
+  // TODO: VMV_X_S, VMV_S_X
+  def vPermutationIntegerScalarMove_VMV_X_S(): (UInt, UInt) => Operations =
+    createOperation(
+      (u, _) => u.vExtOperation -> valid(VectorOperation.MV_X_S),
+      _.rd -> _(11, 7).reg,
+      _.vs2 -> _(24, 20),
+      (u, _) => u.vs2Valid -> true.B,
+    )
+
+  def vPermutationIntegerScalarMove_VMV_S_X(): (UInt, UInt) => Operations =
+    createOperation(
+      (u, _) => u.vExtOperation -> valid(VectorOperation.MV_S_X),
+      _.sources(0).reg -> _(19, 15).reg,
+      _.vd -> _(11, 7),
+      (u, _) => u.vdValid -> true.B,
+    )
 
   def BaseDecodingList = {
     Seq(
@@ -481,6 +495,8 @@ object Operations {
       VType("VMUL_VV") -> vArithOpVV(VectorOperation.MUL, VectorOperands.IVV),
       VType("VMUL_VX") -> vArithOpVX(VectorOperation.MUL, VectorOperands.IVX),
       VType("VREDSUM_VS") -> vArithOpVV(VectorOperation.REDSUM, VectorOperands.MVV),
+      VType("VMV_S_X") -> vPermutationIntegerScalarMove_VMV_S_X(),
+      VType("VMV_X_S") -> vPermutationIntegerScalarMove_VMV_X_S(),
     )
   }
 
@@ -1191,7 +1207,7 @@ object UmopOperation extends ChiselEnum {
 }
 
 object VectorOperation extends ChiselEnum {
-  val ADD, SUB, RSUB, MUL, REDSUM = Value
+  val ADD, SUB, RSUB, MUL, REDSUM, MV_X_S, MV_S_X = Value
   def opIsRedsum(op: VectorOperation.Type): Bool = {
     REDSUM === op
   }
