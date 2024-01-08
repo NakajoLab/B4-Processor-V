@@ -885,3 +885,31 @@ class B4ProcessorVectorArithmeticTests extends AnyFlatSpec with ChiselScalatestT
     }
   }
 }
+
+class B4ProcessorVectorArithmeticMultiThreadTests extends AnyFlatSpec with ChiselScalatestTester {
+  behavior of "B4Processor Vector Arithmetic MultiThread tests"
+
+  implicit val defaultParams =
+    Parameters(
+      debug = true,
+      tagWidth = 4,
+      threads = 1,
+      decoderPerThread = 1,
+      //      enablePExt = true
+    )
+  val backendAnnotation = IcarusBackendAnnotation
+  val WriteWaveformAnnotation = WriteFstAnnotation
+
+  it should "run Vector Matrix Multiply MultiThread" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 2, decoderPerThread = 1, fuckVectorMechanics = false, vlen = 128)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/vecMatMulTest_mt")
+      c.checkForRegister(3, 1919, 2000, 0)
+    }
+  }
+}
