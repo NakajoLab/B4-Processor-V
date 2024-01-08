@@ -31,20 +31,20 @@ int answerArray[8][8] = {{0, 0, 0, 0, 0, 0, 0, 0},
                         {0, 0, 0, 0, 0, 0, 0, 0},
                         {0, 0, 0, 0, 0, 0, 0, 0}};
 
-#define PERFORMANCE_COUNT() do { asm volatile ("rdcycle x5; rdinstret x6"); } while(0)
+#define PERFORMANCE_COUNT() do { asm volatile ("rdcycle x20; rdinstret x21"); } while(0)
 
 // array1は転置行列
 void _e32_8x8_matmul(const int array0[8][8], const int array1[8][8], int target[8][8]) {
   asm volatile ("vsetvli zero, %0, e32, m1, ta, ma"::"r"(8));
+  asm volatile ("vmv.s.x v12, zero");
   int i=0, j=0;
   for(i=0; i<8; i++) {
     asm volatile ("vle32.v v10, (%0)"::"r"(&(array0[i][0])));
-    asm volatile ("vmv.s.x v12, zero");
     for(j=0; j<8; j++) {
       asm volatile ("vle32.v v11, (%0)"::"r"(&(array1[j][0])));
-      asm volatile ("vmul.vv v10, v10, v11");
-      asm volatile ("vredsum.vs v10, v10, v12");
-      asm volatile ("vmv.x.s %0, v10":"=r"(target[i][j]));
+      asm volatile ("vmul.vv v11, v10, v11");
+      asm volatile ("vredsum.vs v11, v11, v12");
+      asm volatile ("vmv.x.s %0, v11":"=r"(target[i][j]));
     }
   }
   return;
