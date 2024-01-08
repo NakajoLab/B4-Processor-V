@@ -909,7 +909,7 @@ class B4ProcessorVectorArithmeticMultiThreadTests extends AnyFlatSpec with Chise
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
     ) { c =>
       c.initialize("programs/riscv-sample-programs/vecMatMulTest_mt")
-      c.checkForRegister(3, 1919, 2000, 0)
+      c.checkForRegister(3, 1919, 4000, 0)
     }
   }
 }

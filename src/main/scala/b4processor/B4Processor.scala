@@ -135,16 +135,23 @@ class B4Processor(implicit params: Parameters) extends Module {
     }
 
   vExtExecutors.foreach(_.io.vectorInput := DontCare)
+  // remove this after use
+  var __debug_temp: Int = 0
   for(ve <- 0 until params.vecAluExecUnitNum) {
     vExtIssueBuffer.io.executors(ve) <> vExtExecutors(ve).io.reservationStation
     for(threadId <- 0 until params.threads) {
+      // vExtExecutors.io.output.bits.tag.threadIdを見て，正しいvecRegFileに接続
       when(vExtExecutors(ve).io.output.bits.tag.threadId === threadId.U) {
+        __debug_temp = __debug_temp + 1
         vExtExecutors(ve).io.vectorInput <> vecRegFile(threadId).io.readReq(ve+1)
         vecRegFile(threadId).io.writeReq(ve+1) := vExtExecutors(ve).io.vectorOutput
       }
       vExtExecutors(ve).io.vCsr(threadId) := csr(threadId).io.vCsrOutput
     }
     outputCollector.io.vExtExecutor(ve) <> vExtExecutors(ve).io.output
+
+    // 各ベクトル実行ユニットはたかだか1つのみのベクトルレジスタファイルに接続される
+    assert(__debug_temp <= 2, s"A: ${__debug_temp}")
   }
 
   for (e <- 0 until params.executors) {
