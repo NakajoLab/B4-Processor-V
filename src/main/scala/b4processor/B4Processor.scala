@@ -141,6 +141,8 @@ class B4Processor(implicit params: Parameters) extends Module {
     vExtIssueBuffer.io.executors(ve) <> vExtExecutors(ve).io.reservationStation
     for(threadId <- 0 until params.threads) {
       // vExtExecutors.io.output.bits.tag.threadIdを見て，正しいvecRegFileに接続
+      // vExtExecutors(0)とvecRegFile(*).io.readReq(1)，
+      // vExtExecutors(1)とvecRegFIle(*).io.readReq(2)が常に接続されている可能性がある
       when(vExtExecutors(ve).io.output.bits.tag.threadId === threadId.U) {
         __debug_temp = __debug_temp + 1
         vExtExecutors(ve).io.vectorInput <> vecRegFile(threadId).io.readReq(ve+1)
@@ -150,7 +152,7 @@ class B4Processor(implicit params: Parameters) extends Module {
     }
     outputCollector.io.vExtExecutor(ve) <> vExtExecutors(ve).io.output
 
-    // 各ベクトル実行ユニットはたかだか1つのみのベクトルレジスタファイルに接続される
+    // 各ベクトル実行ユニットはたかだか1つのみのベクトルレジスタファイルに接続されなければならない
     assert(__debug_temp <= 2, s"A: ${__debug_temp}")
   }
 
