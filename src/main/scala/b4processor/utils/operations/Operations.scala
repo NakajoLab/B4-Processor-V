@@ -478,6 +478,10 @@ object Operations {
       ZICSRType("CSRRCI") -> csrImmOp(CSROperation.ReadClear),
       ZICSRType("CSRRSI") -> csrImmOp(CSROperation.ReadSet),
       ZICSRType("CSRRWI") -> csrImmOp(CSROperation.ReadWrite),
+
+      MType("MUL") -> rtypeOp(ALUOperation.Mul),
+      M64Type("MULW") -> rtypeOp(ALUOperation.MulW),
+
       VType("VSETVLI") -> vsetvliOp(CSROperation.SetVl),
       VType("VSETIVLI") -> vsetivliOp(CSROperation.SetVl),
       VType("VSETVL") -> vsetvlOp(CSROperation.SetVl),
@@ -1161,7 +1165,7 @@ object ALUOperation extends ChiselEnum {
   val BranchEqual, BranchNotEqual, BranchLessThan, BranchGreaterThanOrEqual,
     BranchLessThanUnsigned, BranchGreaterThanOrEqualUnsigned, Add, Sub, And, Or,
     Slt, Sltu, Xor, Sll, Srl, Sra, AddJALR, AddJAL, AddW, SllW, SrlW, SraW,
-    SubW = Value
+    SubW, Mul, MulW = Value
 }
 
 object LoadStoreOperation extends ChiselEnum {

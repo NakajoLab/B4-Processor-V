@@ -58,6 +58,8 @@ class Executor(implicit params: Parameters) extends Module {
           SubW -> (a(31, 0).asSInt - b(31, 0).asSInt).pad(64).asUInt,
           AddJAL -> (b + nextOffset.asUInt),
           AddJALR -> (b + nextOffset.asUInt),
+          Mul -> (a * b),
+          MulW -> (a(31, 0) * b(31, 0))
         ),
       )
   }

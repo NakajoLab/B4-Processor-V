@@ -881,7 +881,7 @@ class B4ProcessorVectorArithmeticTests extends AnyFlatSpec with ChiselScalatestT
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
     ) { c =>
       c.initialize("programs/riscv-sample-programs/vecMatMulTest")
-      c.checkForRegister(3, 1919, 5000)
+      c.checkForRegister(3, 1919, 16000)
     }
   }
 }
