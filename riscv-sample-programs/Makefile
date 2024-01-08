@@ -29,6 +29,7 @@ SUBDIRS := fibonacci \
 			scalar_vAdd \
 			vRedSumTest \
 			vecInnerProdTest \
+			vecMatMulTest \
 			vsetvl \
 #      vectorBranch
 #			simple_loader_uart \
