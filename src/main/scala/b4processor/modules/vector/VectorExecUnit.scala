@@ -213,7 +213,6 @@ class IntegerAluExecUnit(implicit params: Parameters) extends VectorExecUnit {
   )
   reductionAccumulator := rawResult
 
-  // TODO: Add VMV_S_X, VMV_X_S
   io.vectorOutput.bits.data := rawResult
 
   // reductionならば最後の要素のみ書き，かつidxは0
@@ -221,6 +220,31 @@ class IntegerAluExecUnit(implicit params: Parameters) extends VectorExecUnit {
     // io.vectorOutput.bits.writeStrb.foreach(_ := io.vectorOutput.bits.last)
     io.vectorOutput.valid := io.vectorOutput.bits.last
     io.vectorOutput.bits.index := 0.U
+  }
+
+  when(instInfoReg.valid) {
+    when(instInfoReg.bits.vecOperation === VectorOperation.MV_X_S) {
+      // vmv.x.s
+      io.vectorOutput.valid := true.B
+      io.vectorOutput.bits.last := true.B
+      io.vectorOutput.bits.writeStrb.foreach(_ := false.B)
+      io.output.bits.value := MuxLookup(io.vCsr(instInfoReg.bits.destinationTag.threadId).vtype.vsew, io.vectorInput.resp.vs2Out(63, 0))(
+        (0 until 4).map(
+          i => i.U -> io.vectorInput.resp.vs2Out((8 << i) - 1, 0)
+        )
+      )
+    } .elsewhen(instInfoReg.bits.vecOperation === VectorOperation.MV_S_X) {
+      // vmv.s.x
+      io.vectorOutput.valid := true.B
+      io.vectorOutput.bits.last := true.B
+      io.vectorOutput.bits.writeStrb := MuxLookup(io.vCsr(instInfoReg.bits.destinationTag.threadId).vtype.vsew, VecInit(Seq.fill(8)(true.B)))(Seq(
+        0.U -> VecInit(Seq.fill(1)(true.B) ++ Seq.fill(7)(false.B)),
+        1.U -> VecInit(Seq.fill(2)(true.B) ++ Seq.fill(6)(false.B)),
+        2.U -> VecInit(Seq.fill(4)(true.B) ++ Seq.fill(4)(false.B)),
+        3.U -> VecInit(Seq.fill(8)(true.B))
+      ))
+      io.vectorOutput.bits.data := instInfoReg.bits.scalarVal
+    }
   }
 }
 
