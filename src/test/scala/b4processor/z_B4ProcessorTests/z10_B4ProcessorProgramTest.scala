@@ -912,4 +912,16 @@ class B4ProcessorVectorArithmeticMultiThreadTests extends AnyFlatSpec with Chise
       c.checkForRegister(3, 1919, 4000, 0)
     }
   }
+  it should "run Scalar Matrix Multiply MultiThread" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 2, decoderPerThread = 1, fuckVectorMechanics = true, vlen = 128)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/scalarMatMulTest_mt")
+      c.checkForRegister(3, 1919, 8000, 0)
+    }
+  }
 }

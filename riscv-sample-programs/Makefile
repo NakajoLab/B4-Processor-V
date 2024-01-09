@@ -31,6 +31,7 @@ SUBDIRS := fibonacci \
 			vecInnerProdTest \
 			vecMatMulTest \
 			vecMatMulTest_mt \
+			scalarMatMulTest_mt \
 			vsetvl \
 #      vectorBranch
 #			simple_loader_uart \
