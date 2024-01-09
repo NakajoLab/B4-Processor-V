@@ -30,6 +30,7 @@ SUBDIRS := fibonacci \
 			vRedSumTest \
 			vecInnerProdTest \
 			vecMatMulTest \
+			scalarMatMulTest \
 			vecMatMulTest_mt \
 			scalarMatMulTest_mt \
 			vsetvl \

@@ -884,6 +884,18 @@ class B4ProcessorVectorArithmeticTests extends AnyFlatSpec with ChiselScalatestT
       c.checkForRegister(3, 1919, 16000)
     }
   }
+  it should "run Scalar Matrix Multiply" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = true)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/scalarMatMulTest")
+      c.checkForRegister(3, 1919, 12000)
+    }
+  }
 }
 
 class B4ProcessorVectorArithmeticMultiThreadTests extends AnyFlatSpec with ChiselScalatestTester {
