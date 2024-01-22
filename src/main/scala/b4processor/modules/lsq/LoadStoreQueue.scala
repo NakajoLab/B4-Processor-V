@@ -183,7 +183,7 @@ class LoadStoreQueue(implicit params: Parameters)
       // io.memory(i).valid :=  io.memory(i).ready && (head =/= tail) && ("loadの送出条件" || "storeの送出条件")
 
       // ベクトルメモリストアの後にスカラロードがある際にOverlapが検出できない，ベクトルCSRに書く前にベクトルロードが来る可能性があるなどの理由で厳密なインオーダアクセスが必要
-      checkOk := (if(params.fuckVectorMechanics) {
+      checkOk := (if(params.destroyVectorMechanics) {
         (head =/= tail) && buf.valid &&
           buf.addressValid &&
           ((!operationIsStore && !Overlap(i)) ||

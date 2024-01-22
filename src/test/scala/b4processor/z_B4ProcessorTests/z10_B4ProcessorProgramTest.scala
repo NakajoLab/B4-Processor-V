@@ -709,7 +709,7 @@ class z10_B4ProcessorProgramTest
   it should "run vector memcpy" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = false)
+        defaultParams.copy(threads = 1, decoderPerThread = 1, destroyVectorMechanics = false)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
@@ -721,7 +721,7 @@ class z10_B4ProcessorProgramTest
   it should "run scalar memcpy" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = true)
+        defaultParams.copy(threads = 1, decoderPerThread = 1, destroyVectorMechanics = true)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
@@ -733,7 +733,7 @@ class z10_B4ProcessorProgramTest
   it should "run 2-thread vector memcpy" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 2, decoderPerThread = 1, fuckVectorMechanics = false, vlen = 128)
+        defaultParams.copy(threads = 2, decoderPerThread = 1, destroyVectorMechanics = false, vlen = 128)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
@@ -761,7 +761,7 @@ class B4ProcessorMemcpyTests extends AnyFlatSpec with ChiselScalatestTester {
   it should "run vector memcpy" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = false)
+        defaultParams.copy(threads = 1, decoderPerThread = 1, destroyVectorMechanics = false)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
@@ -773,7 +773,7 @@ class B4ProcessorMemcpyTests extends AnyFlatSpec with ChiselScalatestTester {
   it should "run scalar memcpy" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = true)
+        defaultParams.copy(threads = 1, decoderPerThread = 1, destroyVectorMechanics = true)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
@@ -785,7 +785,7 @@ class B4ProcessorMemcpyTests extends AnyFlatSpec with ChiselScalatestTester {
   it should "run 2-thread vector memcpy" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 2, decoderPerThread = 1, fuckVectorMechanics = false, vlen = 128)
+        defaultParams.copy(threads = 2, decoderPerThread = 1, destroyVectorMechanics = false, vlen = 128)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
@@ -797,7 +797,7 @@ class B4ProcessorMemcpyTests extends AnyFlatSpec with ChiselScalatestTester {
   it should "run 2-thread scalar memcpy" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 2, decoderPerThread = 1, fuckVectorMechanics = true, vlen = 128)
+        defaultParams.copy(threads = 2, decoderPerThread = 1, destroyVectorMechanics = true, vlen = 128)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
@@ -825,7 +825,7 @@ class B4ProcessorVectorArithmeticTests extends AnyFlatSpec with ChiselScalatestT
   it should "run vector add" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = false)
+        defaultParams.copy(threads = 1, decoderPerThread = 1, destroyVectorMechanics = false)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
@@ -838,7 +838,7 @@ class B4ProcessorVectorArithmeticTests extends AnyFlatSpec with ChiselScalatestT
   it should "run scalar vAdd" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = true)
+        defaultParams.copy(threads = 1, decoderPerThread = 1, destroyVectorMechanics = true)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
@@ -851,7 +851,7 @@ class B4ProcessorVectorArithmeticTests extends AnyFlatSpec with ChiselScalatestT
   it should "run vMul and vRedsum" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = false)
+        defaultParams.copy(threads = 1, decoderPerThread = 1, destroyVectorMechanics = false)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
@@ -863,7 +863,7 @@ class B4ProcessorVectorArithmeticTests extends AnyFlatSpec with ChiselScalatestT
   it should "run Vector Inner Product" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = false)
+        defaultParams.copy(threads = 1, decoderPerThread = 1, destroyVectorMechanics = false)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
@@ -875,7 +875,7 @@ class B4ProcessorVectorArithmeticTests extends AnyFlatSpec with ChiselScalatestT
   it should "run Vector Matrix Multiply" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = false)
+        defaultParams.copy(threads = 1, decoderPerThread = 1, destroyVectorMechanics = false)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
@@ -887,7 +887,7 @@ class B4ProcessorVectorArithmeticTests extends AnyFlatSpec with ChiselScalatestT
   it should "run Scalar Matrix Multiply" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 1, decoderPerThread = 1, fuckVectorMechanics = true)
+        defaultParams.copy(threads = 1, decoderPerThread = 1, destroyVectorMechanics = true)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
@@ -915,7 +915,7 @@ class B4ProcessorVectorArithmeticMultiThreadTests extends AnyFlatSpec with Chise
   it should "run Vector Matrix Multiply MultiThread" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 2, decoderPerThread = 1, fuckVectorMechanics = false, vlen = 128)
+        defaultParams.copy(threads = 2, decoderPerThread = 1, destroyVectorMechanics = false, vlen = 128)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
@@ -927,7 +927,7 @@ class B4ProcessorVectorArithmeticMultiThreadTests extends AnyFlatSpec with Chise
   it should "run Scalar Matrix Multiply MultiThread" in {
     test(
       new B4ProcessorWithMemory()(
-        defaultParams.copy(threads = 2, decoderPerThread = 1, fuckVectorMechanics = true, vlen = 128)
+        defaultParams.copy(threads = 2, decoderPerThread = 1, destroyVectorMechanics = true, vlen = 128)
       )
     ).withAnnotations(
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)

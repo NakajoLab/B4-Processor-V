@@ -24,31 +24,31 @@ import chisel3.util._
   *   プログラムカウンタの初期値
   * @param xprlen
   *   整数レジスタ長
-  * @param fuckVectorMechanics
+  * @param destroyVectorMechanics
   *   ベクトルに必要な全メモリアクセスのインオーダ化を破壊し，スカラメモリアクセスを高速化するか否か
   */
 case class Parameters(
-  tagWidth: Int = 4,
-  executors: Int = 2,
-  loadStoreQueueIndexWidth: Int = 3,
-  loadStoreQueueCheckLength: Int = 3,
-  decoderPerThread: Int = 2,
-  threads: Int = 2,
-  maxRegisterFileCommitCount: Int = 1,
-  maxDataMemoryCommitCount: Int = 1,
-  fetchWidth: Int = 2,
-  branchPredictionWidth: Int = 4,
-  parallelOutput: Int = 2,
-  instructionStart: Long = 0x8010_0000L,
-  debug: Boolean = false,
-  enablePExt: Boolean = false,
-  pextExecutors: Int = 1,
-  xprlen: Int = 64,
-  vlen: Int = 256,
-  vecAluExecUnitNum: Int = 2,
-  vecExecBufIndexWidth: Int = 3,
-  physicalVrfFor1Thread: Int = 48,
-  fuckVectorMechanics: Boolean = false,
+                       tagWidth: Int = 4,
+                       executors: Int = 2,
+                       loadStoreQueueIndexWidth: Int = 3,
+                       loadStoreQueueCheckLength: Int = 3,
+                       decoderPerThread: Int = 2,
+                       threads: Int = 2,
+                       maxRegisterFileCommitCount: Int = 1,
+                       maxDataMemoryCommitCount: Int = 1,
+                       fetchWidth: Int = 2,
+                       branchPredictionWidth: Int = 4,
+                       parallelOutput: Int = 2,
+                       instructionStart: Long = 0x8010_0000L,
+                       debug: Boolean = false,
+                       enablePExt: Boolean = false,
+                       pextExecutors: Int = 1,
+                       xprlen: Int = 64,
+                       vlen: Int = 256,
+                       vecAluExecUnitNum: Int = 2,
+                       vecExecBufIndexWidth: Int = 3,
+                       physicalVrfFor1Thread: Int = 48,
+                       destroyVectorMechanics: Boolean = false,
 ) {
   require(isPow2(vlen), s"vlen(${vlen.toString}) is not power of 2.")
   def vlenb: Int = vlen/8
