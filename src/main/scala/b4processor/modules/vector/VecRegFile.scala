@@ -96,18 +96,11 @@ class VecRegFile(vrfPortNum: Int)(implicit params: Parameters) extends Module {
   def writeToVRF(vrf: Mem[Vec[UInt]], req: VecRegFileWriteReq): Unit = {
     val internalWriteData = VecInit((0 until params.vlen / 8).map(_ => 0.U(8.W)))
     val internalWriteMask = VecInit((0 until params.vlen / 8).map(_ => false.B))
-    for (i <- 0 until 4) {
-      switch(req.vtype.vsew) {
-        // sew=0 -> req.index*8からreq.index*8+7まで
-        is(i.U) {
-          for(j <- 0 until 8) {
-            // i=0 (e8) => internalWriteData(index*8 + 0...7) := data(7,0), data(15,8), ..., data(63, 56)
-            // i=1 (e16) => internalWriteData(index*8 + 0...7)
-            internalWriteData((req.index << 3).asUInt + j.U) := req.data(j * 8 + 7, j * 8)
-            internalWriteMask((req.index << 3).asUInt + j.U) := req.writeStrb(j)
-          }
-        }
-      }
+    for(j <- 0 until 8) {
+      // i=0 (e8) => internalWriteData(index*8 + 0...7) := data(7,0), data(15,8), ..., data(63, 56)
+      // i=1 (e16) => internalWriteData(index*8 + 0...7)
+      internalWriteData((req.index << 3).asUInt + j.U) := req.data(j * 8 + 7, j * 8)
+      internalWriteMask((req.index << 3).asUInt + j.U) := req.writeStrb(j)
     }
     vrf.write(req.vd, internalWriteData, internalWriteMask)
   }
