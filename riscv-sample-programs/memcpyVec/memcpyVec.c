@@ -1,20 +1,20 @@
-const char charArray[48]   = {0xA4, 0x3, 0x16, 0x5A, 0x84, 0xBD, 0x7A, 0xC4, 0x41, 0x55, 0x44, 0x6D, 0xE7, 0x3C, 0x0, 0x1B, 0xA7, 0x2A, 0x2C, 0x2B, 0xE4, 0xC7, 0x3, 0x82, 0xB8, 0xAB, 0xA1, 0x90, 0xF3, 0x1B, 0x81, 0x5, 0xE7, 0x6C, 0xA7, 0xD, 0x19, 0x2A, 0xC4, 0x31, 0x98, 0x5, 0xFA, 0xDE, 0x88, 0x1D, 0xA0, 0x95};
-char targetArray[48]       = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-const char answerArray[48] = {0xA4, 0x3, 0x16, 0x5A, 0x84, 0xBD, 0x7A, 0xC4, 0x41, 0x55, 0x44, 0x6D, 0xE7, 0x3C, 0x0, 0x1B, 0xA7, 0x2A, 0x2C, 0x2B, 0xE4, 0xC7, 0x3, 0x82, 0xB8, 0xAB, 0xA1, 0x90, 0xF3, 0x1B, 0x81, 0x5, 0xE7, 0x6C, 0xA7, 0xD, 0x19, 0x2A, 0xC4, 0x31, 0x98, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+const long charArray[10]   = {6150393738698145096, -2778327846724662266, -8467406063169314668, 3640924259398909674, -6424446445769269196, -5266053904934278905, -7022886145829593499, -8266817571845076872, -7546117979205758930, 6825206634430467364};
+long targetArray[10]       = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+const long answerArray[10] = {6150393738698145096, -2778327846724662266, -8467406063169314668, 3640924259398909674, -6424446445769269196, -5266053904934278905, -7022886145829593499, -8266817571845076872, -1, -1};
 
-#define PERFORMANCE_COUNT() do { asm volatile ("rdcycle x5; rdinstret x6"); } while(0)
+#define PERFORMANCE_COUNT() do { asm volatile ("rdcycle x30; rdinstret x31"); } while(0)
 
-void* memcpyVec(void* dest, const void* src, long n) {
+long* memcpyVec(long* dest, const long* src, long n) {
   int i, vl, avl=n;
-  void* originalDest = dest;
+  long* originalDest = dest;
   while(avl != 0) {
-    asm volatile ("vsetvli %0, %1, e8, m1, ta, ma"
+    asm volatile ("vsetvli %0, %1, e64, m1, ta, ma"
     : "=r"(vl)
     : "r"(avl));
     // load src
-    asm volatile ("vle8.v v10, (%0)"::"r"(src));
+    asm volatile ("vle64.v v10, (%0)"::"r"(src));
     // store to dest
-    asm volatile ("vse8.v v10, (%0)"::"r"(dest));
+    asm volatile ("vse64.v v10, (%0)"::"r"(dest));
     // increment pointers
     src += vl;
     dest += vl;
@@ -25,15 +25,15 @@ void* memcpyVec(void* dest, const void* src, long n) {
 }
 
 long main(long loop_count) {
-  const char* src = (const char*)0x80100148;
-  char* dest = (char*)0x80100200;
-  const char* ans = (const char*)0x80100118;
+  const long* src = (const long*)0x80100168;
+  long* dest = (long*)0x80100200;
+  const long* ans = (const long*)0x80100118;
   int i;
   PERFORMANCE_COUNT();
   asm volatile ("fence");
-  memcpyVec(dest, src, 41);
+  memcpyVec(dest, src, 8);
   asm volatile ("fence");
   PERFORMANCE_COUNT();
-  for(i=0; i<48; i++) if(*(dest+i) != *(ans+i)) return 1;
+  for(i=0; i<10; i++) if(*(dest+i) != *(ans+i)) return 1;
   return 1919;
 }

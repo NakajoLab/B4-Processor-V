@@ -3,7 +3,7 @@ long targetArray[10]       = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
 const long answerArray[10] = {6150393738698145096, -2778327846724662266, -8467406063169314668, 3640924259398909674, -6424446445769269196, -5266053904934278905, -7022886145829593499, -8266817571845076872, -1, -1};
 char thread1Finished = 0xFF;
 
-#define PERFORMANCE_COUNT() do { asm volatile ("rdcycle x5; rdinstret x6"); } while(0)
+#define PERFORMANCE_COUNT() do { asm volatile ("rdcycle x30; rdinstret x31"); } while(0)
 
 long* _memcpyVecE64_internal(long* dest, const long* src, int n) {
   int i, vl, avl=n;
