@@ -896,6 +896,20 @@ class B4ProcessorVectorArithmeticTests extends AnyFlatSpec with ChiselScalatestT
       c.checkForRegister(3, 1919, 12000)
     }
   }
+
+  it should "run Vector Matrix Multiply with 128 vlen" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 1, decoderPerThread = 1, destroyVectorMechanics = false, vlen = 128)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/vecMatMulTest_vlen128")
+      c.checkForRegister(3, 1919, 16000)
+    }
+  }
+
 }
 
 class B4ProcessorVectorArithmeticMultiThreadTests extends AnyFlatSpec with ChiselScalatestTester {
@@ -921,6 +935,18 @@ class B4ProcessorVectorArithmeticMultiThreadTests extends AnyFlatSpec with Chise
       Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
     ) { c =>
       c.initialize("programs/riscv-sample-programs/vecMatMulTest_mt")
+      c.checkForRegister(3, 1919, 4000, 0)
+    }
+  }
+  it should "run Vector Matrix Multiply MultiThread with 256 vlen" in {
+    test(
+      new B4ProcessorWithMemory()(
+        defaultParams.copy(threads = 2, decoderPerThread = 1, destroyVectorMechanics = false, vlen = 256)
+      )
+    ).withAnnotations(
+      Seq(WriteWaveformAnnotation, backendAnnotation, CachingAnnotation)
+    ) { c =>
+      c.initialize("programs/riscv-sample-programs/vecMatMulTest_vlen256_mt")
       c.checkForRegister(3, 1919, 4000, 0)
     }
   }
