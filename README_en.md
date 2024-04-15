@@ -7,7 +7,7 @@ OoO Processor
 The following tools are required to build.
 
 ## Package Manager
-You can learn about Nix through reading [Zero to Nix] and [Nix]. 
+You can learn about Nix by reading [Zero to Nix] and [Nix]. 
 * [Nix][Nix download]
 
 ## Development Tools
