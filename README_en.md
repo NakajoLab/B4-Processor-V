@@ -52,7 +52,7 @@ If you want to choose which test to run, you should open this project in [Intell
 # Troubleshooting
 ## Failed to generate the processor after changing dependencies.
 There may be a problem with Nix's dependency cache.
-Then you should edit `./flake.nix` like a following.
+In this case you should edit `./flake.nix` like a following.
 ```diff
 diff --git a/flake.nix b/flake.nix
 index 726feaa..478b09e 100644
